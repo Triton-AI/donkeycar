@@ -510,8 +510,9 @@ class OakDCamera:
                 self.roi_distances.append(int(coords.y))
                 self.roi_distances.append(int(coords.z))
             
-        print(image_data_xout.shape, "alll")
+        # print(image_data_xout.shape, "alll")
         if self.center_image_return:
+            print("ok", self.frame_xout.shape)
             return self.frame_xout
         elif self.depth_image_return:
             return depth_frame # Pixel map of distances (in millimeters)
