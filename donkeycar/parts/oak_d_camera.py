@@ -31,8 +31,8 @@ class OakDCameraBuilder:
         self.rgb_sensor_iso = 1200
         self.rgb_wb_manual = 2800
         self.center_image_return = False
-        self.five_channel_image_return = True
-        self.depth_image_return = False
+        self.five_channel_image_return = False
+        self.depth_image_return = True
 
     def with_width(self, width):
         self.width = width
@@ -152,8 +152,8 @@ class OakDCamera:
                  rgb_sensor_iso = 1200,
                  rgb_wb_manual= 2800,
                  center_image_return = False,
-                 five_channel_image_return = True,
-                 depth_image_return = False):
+                 five_channel_image_return = False,
+                 depth_image_return = True):
 
         
         self.on = False
@@ -324,62 +324,40 @@ class OakDCamera:
             raise
 
     def create_depth_pipeline(self):
-        
-        # Create depth nodes
-        monoRight = self.pipeline.create(dai.node.MonoCamera)
+        # Initialize MonoCamera nodes for the left and right cameras.
         monoLeft = self.pipeline.create(dai.node.MonoCamera)
+        monoRight = self.pipeline.create(dai.node.MonoCamera)
+        monoLeft.setBoardSocket(dai.CameraBoardSocket.LEFT)
+        monoRight.setBoardSocket(dai.CameraBoardSocket.RIGHT)
+        monoLeft.setResolution(dai.MonoCameraProperties.SensorResolution.THE_400_P)
+        monoRight.setResolution(dai.MonoCameraProperties.SensorResolution.THE_400_P)
 
-        if self.center_image_return == False:
-            # Create XLinkOut nodes for left and right cameras
+        # Optionally output left and right camera streams.
+        if not self.center_image_return:
             xout_left = self.pipeline.create(dai.node.XLinkOut)
             xout_right = self.pipeline.create(dai.node.XLinkOut)
-
-            # Set stream names
             xout_left.setStreamName("left")
             xout_right.setStreamName("right")
-
-            # Link MonoCamera outputs to XLinkOut inputs
             monoLeft.out.link(xout_left.input)
             monoRight.out.link(xout_right.input)
 
-        stereo_manip = self.pipeline.create(dai.node.ImageManip)
+        # Create StereoDepth node to calculate depth.
         stereo = self.pipeline.create(dai.node.StereoDepth)
+        stereo.setLeftRightCheck(True)  # Enables left-right check for better disparity calculation.
+        stereo.setExtendedDisparity(True)  # Enables extended disparity for close-range depth perception.
+        stereo.setSubpixel(False)  # Adjust based on whether you need sub-pixel accuracy.
+        stereo.initialConfig.setMedianFilter(dai.MedianFilter.KERNEL_7x7)  # Helps in reducing noise.
+        stereo.initialConfig.setConfidenceThreshold(200)  # Filters out low confidence points.
+        stereo.setDefaultProfilePreset(dai.node.StereoDepth.PresetMode.HIGH_DENSITY)  # Use high-density depth map.
 
-        # Better handling for occlusions:
-        stereo.setLeftRightCheck(True)
-        # Closer-in minimum depth, disparity range is doubled:
-        stereo.setExtendedDisparity(True)
-        # Better accuracy for longer distance, fractional disparity 32-levels:
-        stereo.setSubpixel(False)
-        stereo.initialConfig.setMedianFilter(dai.MedianFilter.KERNEL_7x7)
-        stereo.initialConfig.setConfidenceThreshold(200)
-
+        # Output depth stream.
         xout_depth = self.pipeline.create(dai.node.XLinkOut)
         xout_depth.setStreamName("xout_depth")
 
-        # Crop range
-        topLeft = dai.Point2f(0.1875, 0.0)
-        bottomRight = dai.Point2f(0.8125, 0.25)
-        #    - - > x 
-        #    |
-        #    y
-        
-        # Properties
-        monoRight.setBoardSocket(dai.CameraBoardSocket.RIGHT)
-        monoLeft.setBoardSocket(dai.CameraBoardSocket.LEFT)
-        monoRight.setResolution(dai.MonoCameraProperties.SensorResolution.THE_400_P)
-        monoLeft.setResolution(dai.MonoCameraProperties.SensorResolution.THE_400_P)
-
-        stereo_manip.initialConfig.setCropRect(topLeft.x, topLeft.y, bottomRight.x, bottomRight.y)
-        # manip.setMaxOutputFrameSize(monoRight.getResolutionHeight()*monoRight.getResolutionWidth()*3)
-        stereo.setDefaultProfilePreset(dai.node.StereoDepth.PresetMode.HIGH_DENSITY)
-
-        # Linking
-        # configIn.out.link(manip.inputConfig)
-        monoRight.out.link(stereo.right)
+        # Linking camera outputs to the stereo node.
         monoLeft.out.link(stereo.left)
-        stereo.depth.link(stereo_manip.inputImage)
-        stereo_manip.out.link(xout_depth.input)
+        monoRight.out.link(stereo.right)
+        stereo.depth.link(xout_depth.input)  # Directly link depth output for visualization or processing.
 
     def create_obstacle_dist_pipeline(self):
 
@@ -476,13 +454,13 @@ class OakDCamera:
             image_data_xout = data_xout.getFrame()
             self.frame_xout = np.moveaxis(image_data_xout,0,-1)
             # Retrieve the left camera frame
-            if self.queue_left.has():
+            if self.queue_left is not None and self.queue_left.has():
                 data_left = self.queue_left.get()
                 self.frame_left = data_left.getCvFrame()
                 # self.frame_left = np.moveaxis(image_data_xout_left,0,-1)
 
             # Retrieve the right camera frame
-            if self.queue_right.has():
+            if self.queue_right is not None and self.queue_right.has():
                 data_right = self.queue_right.get()
                 self.frame_right = data_right.getCvFrame()
                 # self.frame_right = np.moveaxis(self.frame_right,0,-1)
@@ -499,8 +477,15 @@ class OakDCamera:
             data_xout_depth = self.queue_xout_depth.tryGet()
             if data_xout_depth is not None:
                 depth_frame = data_xout_depth.getFrame()
-                self.frame_xout_depth = depth_frame
 
+                # Normalize the depth map for visualization
+                depth_frame_normalized = cv2.normalize(depth_frame, None, 0, 255, cv2.NORM_MINMAX)
+                depth_frame_normalized = np.uint8(depth_frame_normalized)
+
+                # Apply colormap on normalized depth for visualization
+                depth_colormap = cv2.applyColorMap(depth_frame_normalized, cv2.COLORMAP_JET)
+                self.frame_xout_depth = depth_colormap
+                
         if self.queue_xout_spatial_data is not None:
             print("bhhhhh")
             xout_spatial_data = self.queue_xout_spatial_data.get().getSpatialLocations()
