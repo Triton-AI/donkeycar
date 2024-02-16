@@ -281,14 +281,14 @@ class OakDCamera:
             #self.left_device = dai.Device(self.) #TODO
 
             warming_time = time.time() + 5  # seconds
-
-            self.queue_left = self.device.getOutputQueue(name="left", maxSize=1, blocking=False)
-            self.queue_right = self.device.getOutputQueue(name="right", maxSize=1, blocking=False)
                 
             if enable_depth:
                 self.queue_xout = self.device.getOutputQueue("xout", maxSize=1, blocking=False)
                 self.queue_xout_depth = self.device.getOutputQueue("xout_depth", maxSize=1, blocking=False)
                 # At the end of the __init__ method, create queues for left and right camera frames
+                if self.center_image_return == False:
+                    self.queue_left = self.device.getOutputQueue(name="left", maxSize=1, blocking=False)
+                    self.queue_right = self.device.getOutputQueue(name="right", maxSize=1, blocking=False)
 
                 # Get the first frame or timeout
                 while (self.frame_xout is None or self.frame_xout_depth is None) and time.time() < warming_time:
@@ -448,6 +448,8 @@ class OakDCamera:
     def run(self):
 
         depth_frame = None
+        self.queue_left = None
+        self.queue_right = None
         # Grab the frame from the stream 
         if self.queue_xout is not None:
             data_xout = self.queue_xout.get() # blocking
