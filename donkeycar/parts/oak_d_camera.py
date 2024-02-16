@@ -32,7 +32,7 @@ class OakDCameraBuilder:
         self.rgb_wb_manual = 2800
         self.center_image_return = False
         self.five_channel_image_return = False
-        self.depth_image_return = True
+        self.depth_image_return = False
 
     def with_width(self, width):
         self.width = width
@@ -153,7 +153,7 @@ class OakDCamera:
                  rgb_wb_manual= 2800,
                  center_image_return = False,
                  five_channel_image_return = False,
-                 depth_image_return = True):
+                 depth_image_return = False):
 
         
         self.on = False
@@ -510,16 +510,12 @@ class OakDCamera:
                 self.roi_distances.append(int(coords.y))
                 self.roi_distances.append(int(coords.z))
             
-        # print(image_data_xout.shape, "alll")
-        if self.center_image_return:
-            print("ok", self.frame_xout.shape)
-            return self.frame_xout
-        elif self.depth_image_return:
+        if self.depth_image_return:
             return depth_frame # Pixel map of distances (in millimeters)
         elif self.five_channel_return and self.frame_left is not None and self.frame_right is not None:
             return self.enhance_center_with_grayscale(image_data_xout, self.frame_left, self.frame_right)
         else:
-            return None
+            return self.frame_xout
 
     def run_threaded(self):
         if self.enable_depth:
