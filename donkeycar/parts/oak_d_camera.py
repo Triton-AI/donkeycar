@@ -515,9 +515,9 @@ class OakDCamera:
         elif self.five_channel_return and self.frame_left is not None and self.frame_right is not None:
             return self.enhance_center_with_grayscale(image_data_xout, self.frame_left, self.frame_right)
         else:
-            print("ok", self.frame_xout.shape)
-            return np.transpose(self.frame_xout, (2, 1, 0))
-            #return self.frame_xout
+            # print("ok", self.frame_xout.shape)
+            # return self.frame_xout
+            return np.zeros((600, 800, 3))
 
     def run_threaded(self):
         if self.enable_depth:
