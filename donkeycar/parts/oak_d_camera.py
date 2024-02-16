@@ -140,7 +140,7 @@ class OakDCamera:
                  depth=3, 
                  isp_scale=None, 
                  framerate=30, 
-                 enable_depth=False, 
+                 enable_depth=True, 
                  enable_obstacle_dist=False, 
                  rgb_resolution="1080p",
                  rgb_apply_cropping=False,
