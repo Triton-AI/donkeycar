@@ -515,7 +515,7 @@ class OakDCamera:
         elif self.five_channel_return and self.frame_left is not None and self.frame_right is not None:
             return self.enhance_center_with_grayscale(image_data_xout, self.frame_left, self.frame_right)
         else:
-            print("ok")
+            print("ok", self.frame_xout)
             return self.frame_xout
 
     def run_threaded(self):
