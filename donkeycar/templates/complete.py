@@ -499,6 +499,14 @@ def drive(cfg, model_path=None, use_joystick=False, model_type=None,
         inputs += ['cam/depth_array']
         types += ['gray16_array']
 
+    if cfg.CAMERA_TYPE == "OAK" and cfg.OAK_ENABLE_DEPTH_MAP:
+        inputs += ['cam/depth_array']
+        types += ['gray16_array']
+
+    if cfg.CAMERA_TYPE == "OAK" and cfg.OAK_OBSTACLE_DETECTION_ENABLED:
+        inputs += ['cam/roi_array']
+        types += ['gray16_array']
+
     if cfg.HAVE_IMU or (cfg.CAMERA_TYPE == "D435" and cfg.REALSENSE_D435_IMU):
         inputs += ['imu/acl_x', 'imu/acl_y', 'imu/acl_z',
             'imu/gyr_x', 'imu/gyr_y', 'imu/gyr_z']
@@ -893,6 +901,33 @@ def add_camera(V, cfg, camera_type):
                        'imu/acl_x', 'imu/acl_y', 'imu/acl_z',
                        'imu/gyr_x', 'imu/gyr_y', 'imu/gyr_z'],
               threaded=True)
+    elif cfg.CAMERA_TYPE == "OAK":
+        from donkeycar.parts.realsense435i import RealSense435i
+        cam = RealSense435i(
+            enable_rgb=cfg.REALSENSE_D435_RGB,
+            enable_depth=cfg.REALSENSE_D435_DEPTH,
+            enable_imu=cfg.REALSENSE_D435_IMU,
+            device_id=cfg.REALSENSE_D435_ID)
+        V.add(cam, inputs=[],
+              outputs=['cam/image_array', 'cam/depth_array',
+                       'imu/acl_x', 'imu/acl_y', 'imu/acl_z',
+                       'imu/gyr_x', 'imu/gyr_y', 'imu/gyr_z'],
+              threaded=True)
+    elif cfg.CAMERA_TYPE == "OAK" and cfg.ENABLE_DEPTH_MAP:
+        cam = get_camera(cfg)
+        V.add(cam, inputs=[],
+              outputs=['cam/image_array', 'cam/depth_array'],
+              threaded=True)
+    elif cfg.CAMERA_TYPE == "OAK" and cfg.OBSTACLE_DETECTION_ENABLED:
+        cam = get_camera(cfg)
+        V.add(cam, inputs=[],
+              outputs=['cam/image_array', 'cam/roi_array'],
+              threaded=threaded)
+    elif cfg.CAMERA_TYPE == "OAK" and cfg.ENABLE_DEPTH_MAP:
+        cam = get_camera(cfg)
+        V.add(cam, inputs=[],
+              outputs=['cam/image_array', 'cam/depth_array'],
+              threaded=threaded)
     else:
         inputs = []
         outputs = ['cam/image_array']
@@ -900,7 +935,7 @@ def add_camera(V, cfg, camera_type):
         cam = get_camera(cfg)
         if cam:
             V.add(cam, inputs=inputs, outputs=outputs, threaded=threaded)
-        if cfg.BGR2RGB:
+        if cfg.BGR2RGB
             from donkeycar.parts.cv import ImgBGR2RGB
             V.add(ImgBGR2RGB(), inputs=["cam/image_array"], outputs=["cam/image_array"])
 
