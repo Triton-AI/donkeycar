@@ -1160,15 +1160,14 @@ import rclpy
 from rclpy.node import Node
 from std_msgs.msg import String
 import os
-from ament_index_python.packages import get_package_share_directory
+from ament_index_python.packages import get_package_prefix
 
 class DonkeyCarNode(Node):
     def __init__(self):
         super().__init__('donkeycar')
 
-        config_path = os.path.join( get_package_share_directory('Donkeycar_ros2_bridge'), 'include', 'config.py')
-        
-        cfg = dk.load_config(config_path=config_path, )
+        config_path = os.path.join(get_package_prefix('Donkeycar_ros2_bridge'), '..', '..', 'src', 'Donkeycar_ros2_bridge', 'Donkeycar_ros2_bridge', 'config.py')
+        cfg = dk.load_config(config_path=config_path)
 
         drive(cfg)
 
