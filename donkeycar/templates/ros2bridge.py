@@ -1151,9 +1151,9 @@ def add_drivetrain(V, cfg):
                         )
             V.add(vesc, inputs=['steering', 'throttle'])
 
-        elif cfg.DRIVE_TRAIN_TYPE == "ROS2BRIDGE":
-            from donkeycar.parts.actuator import ROS2BRIDGE
-            V.add(ROS2BRIDGE(topic_name=cfg.ROS2_TOPIC_NAME), inputs=['steering', 'throttle'])
+        elif cfg.DRIVE_TRAIN_TYPE == "ROS2TWIST":
+            from donkeycar.parts.actuator import ROS2TWIST
+            V.add(ROS2TWIST(topic_name=cfg.ROS2TWIST_TOPIC), inputs=['steering', 'throttle'])
 
 
 import rclpy
@@ -1166,9 +1166,9 @@ class DonkeyCarNode(Node):
     def __init__(self):
         super().__init__('donkeycar')
 
-        config_path = os.path.join( get_package_share_directory('dkb'), 'include', 'config.py')
+        config_path = os.path.join( get_package_share_directory('Donkeycar_ros2_bridge'), 'include', 'config.py')
         
-        cfg = dk.load_config(config_path=config_path)
+        cfg = dk.load_config(config_path=config_path, )
 
         drive(cfg)
 
