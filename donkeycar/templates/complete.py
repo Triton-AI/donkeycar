@@ -1150,6 +1150,10 @@ def add_drivetrain(V, cfg):
                           cfg.VESC_STEERING_OFFSET
                         )
             V.add(vesc, inputs=['steering', 'throttle'])
+        elif cfg.DRIVE_TRAIN_TYPE == "ROS2TWIST":
+            from donkeycar.parts.actuator import ROS2TWIST
+            logger.info("Creating ROS2TWIST at topic {}".format(cfg.ROS2TWIST_TOPIC))
+            V.add(ROS2TWIST(topic_name=cfg.ROS2TWIST_TOPIC), inputs=['steering', 'throttle'])
 
 
 if __name__ == '__main__':

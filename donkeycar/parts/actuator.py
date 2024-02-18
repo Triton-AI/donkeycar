@@ -179,7 +179,34 @@ class PCA9685:
 
     def run(self, pulse):
         self.set_pulse(pulse)
+class ROS2TWIST:
+    '''
+    ROS2BRIDGE motor controler using ROS2
+    This is used to publish twist information to a ROS2 topic.
 
+    inputs: topic_name---- name of the topic to publish to
+    '''
+    def __init__(self, topic_name='/donkeycar/cmd_vel'):
+        
+        try:
+            import rclpy
+            from rclpy.node import Node
+            from geometry_msgs.msg import Twist
+        except Exception as err:
+            print("\n\n\n\n", err, "\n")
+            print("Please read instructions at https://github.com/Triton-AI/Donkeycar_ros2_bridge/tree/main")
+            print("\n\n\n")
+            time.sleep(1)
+            raise
+
+        self.node = Node('donkeycar_actuator')
+        self.publisher = self.node.create_publisher(Twist, topic_name, 10)
+        self.msg = Twist()
+
+    def run(self, steering, throttle):
+        self.msg.linear.x = float(throttle)
+        self.msg.angular.z = float(steering)
+        self.publisher.publish(self.msg)
 
 class VESC:
     ''' 
