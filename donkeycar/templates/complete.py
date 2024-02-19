@@ -504,8 +504,8 @@ def drive(cfg, model_path=None, use_joystick=False, model_type=None,
         types += ['gray16_array']
 
     if cfg.CAMERA_TYPE == "OAK" and cfg.OAK_OBSTACLE_DETECTION_ENABLED:
-        inputs += ['cam/roi_array']
-        types += ['gray16_array']
+        inputs += ['cam/obstacle_distances']
+        types += ['np_array']
 
     if cfg.HAVE_IMU or (cfg.CAMERA_TYPE == "D435" and cfg.REALSENSE_D435_IMU):
         inputs += ['imu/acl_x', 'imu/acl_y', 'imu/acl_z',
@@ -901,21 +901,16 @@ def add_camera(V, cfg, camera_type):
                        'imu/acl_x', 'imu/acl_y', 'imu/acl_z',
                        'imu/gyr_x', 'imu/gyr_y', 'imu/gyr_z'],
               threaded=True)
-    elif cfg.CAMERA_TYPE == "OAK":
-        cam = get_camera(cfg)
-        V.add(cam, inputs=[],
-              outputs=['cam/image_array'],
-              threaded=True)
     elif cfg.CAMERA_TYPE == "OAK" and cfg.OBSTACLE_DETECTION_ENABLED:
         cam = get_camera(cfg)
         V.add(cam, inputs=[],
-              outputs=['cam/image_array', 'cam/roi_array'],
-              threaded=threaded)
+              outputs=['cam/image_array', 'cam/obstacle_distances'],
+              threaded=True)
     elif cfg.CAMERA_TYPE == "OAK" and cfg.ENABLE_DEPTH_MAP:
         cam = get_camera(cfg)
         V.add(cam, inputs=[],
               outputs=['cam/image_array', 'cam/depth_array'],
-              threaded=threaded)
+              threaded=True)
     else:
         inputs = []
         outputs = ['cam/image_array']
