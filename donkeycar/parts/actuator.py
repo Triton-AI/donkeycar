@@ -180,6 +180,53 @@ class PCA9685:
     def run(self, pulse):
         self.set_pulse(pulse)
 
+class GTK():
+    def __init__(self, serial_port):    
+        # Import necessary libraries
+        from serial import Serial
+        import crcmod
+        import struct.pack
+
+        # Connect to the serial port
+        try:
+            self.ser = Serial(serial_port, 115200, timeout=1)
+            logger.info("Connected to the serial port")
+        except:
+            logger.info("Could not connect to the serial port")
+
+        # Set the crc16
+        self.crc16 = crcmod.mkCrcFun(0x11021, initCrc=0x0000, rev=False)
+        self.pack = struct.pack
+
+    def run(self, angle, throttle):  
+        # check if angle is NoneType
+        if angle is None:
+            angle = 0
+        if throttle is None:
+            throttle = 0
+        # Check if the values are in the correct range
+        if throttle < -1 or throttle > 1:
+            throttle = max(min(throttle, 1), -1)
+            # print(f'{Style.BRIGHT+Fore.YELLOW}Throttle value out of range, set to {throttle}{Style.RESET_ALL}')
+        if angle < -1 or angle > 1:
+            angle = max(min(angle, 1), -1)
+            # print(f'{Style.BRIGHT+Fore.YELLOW}Steer value out of range, set to {steer}{Style.RESET_ALL}')
+
+        # Convert the floats to bytes
+        throttle = self.__float_to_byte(throttle)
+        angle = self.__float_to_byte(angle)
+        brake = self.__float_to_byte(0.0)
+
+        # Create the packet
+        payload = b'\xAB' + throttle + angle + brake
+        hash = self.crc16(payload).to_bytes(2, byteorder='little')
+        packet = b'\x02\x0D' + payload + hash +  b'\x03'
+
+        # Send the packet
+        self.ser.write(packet)
+
+    def __float_to_byte(self, f):
+        return self.pack('f', f).zfill(4)
 
 class VESC:
     ''' 

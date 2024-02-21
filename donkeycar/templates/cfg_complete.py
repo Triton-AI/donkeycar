@@ -84,6 +84,7 @@ SSD1306_RESOLUTION = 1 # 1 = 128x32; 2 = 128x64
 # "DC_TWO_WHEEL_L298N" using HBridge in 3-pin mode to control two drive motors, one of the left and one on the right.
 # "MOCK" no drive train.  This can be used to test other features in a test rig.
 # "VESC" VESC Motor controller to set servo angle and duty cycle
+# "GTK" Use to control ucsd kart
 # (deprecated) "SERVO_HBRIDGE_PWM" use ServoBlaster to output pwm control from the PiZero directly to control steering,
 #                                  and HBridge for a drive motor.
 # (deprecated) "PIGPIO_PWM" uses Raspberrys internal PWM
@@ -251,6 +252,8 @@ VESC_BAUDRATE= 115200 # baudrate for the serial communication. Shouldn't need to
 VESC_TIMEOUT= 0.05 # timeout for the serial communication
 VESC_STEERING_SCALE= 0.5 # VESC accepts steering inputs from 0 to 1. Joystick is usually -1 to 1. This changes it to -0.5 to 0.5
 VESC_STEERING_OFFSET = 0.5 # VESC accepts steering inputs from 0 to 1. Coupled with above change we move Joystick to 0 to 1
+
+GTK_SERIAL_PORT = "/dev/ttyUSB0"
 
 #
 # DC_STEER_THROTTLE with one motor as steering, one as drive
