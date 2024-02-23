@@ -85,10 +85,13 @@ class OakDCamera:
         if depth == 3:
             # Source
             camera = self.pipeline.create(dai.node.ColorCamera)
+            camera.setBoardSocket(dai.CameraBoardSocket.CAM_A)
             if self.rgb_resolution == "800p":
                 camera.setResolution(dai.ColorCameraProperties.SensorResolution.THE_800_P)
             elif self.rgb_resolution == "1080p":
                 camera.setResolution(dai.ColorCameraProperties.SensorResolution.THE_1080_P)
+            elif self.rgb_resolution == "1200p":
+                camera.setResolution(dai.ColorCameraProperties.SensorResolution.THE_1200_P)
             else:
                 camera.setResolution(dai.ColorCameraProperties.SensorResolution.THE_1080_P)
             camera.setInterleaved(False)
@@ -197,10 +200,20 @@ class OakDCamera:
             raise
 
     def create_depth_pipeline(self):
+        if self.rgb_resolution == '1200p':
+            right_cam = self.pipeline.create(dai.node.ColorCamera)
+            left_cam = self.pipeline.create(dai.node.ColorCamera)
+        else:
+            right_cam = self.pipeline.create(dai.node.MonoCamera)
+            left_cam = self.pipeline.create(dai.node.MonoCamera)
+            right_cam.setResolution(dai.MonoCameraProperties.SensorResolution.THE_400_P)
+            left_cam.setResolution(dai.MonoCameraProperties.SensorResolution.THE_400_P)
         
+        # Properties
+        right_cam.setBoardSocket(dai.CameraBoardSocket.CAM_C)
+        left_cam.setBoardSocket(dai.CameraBoardSocket.CAM_B)
+
         # Create depth nodes
-        monoRight = self.pipeline.create(dai.node.MonoCamera)
-        monoLeft = self.pipeline.create(dai.node.MonoCamera)
         stereo_manip = self.pipeline.create(dai.node.ImageManip)
         stereo = self.pipeline.create(dai.node.StereoDepth)
 
@@ -222,12 +235,6 @@ class OakDCamera:
         #    - - > x 
         #    |
         #    y
-        
-        # Properties
-        monoRight.setBoardSocket(dai.CameraBoardSocket.RIGHT)
-        monoLeft.setBoardSocket(dai.CameraBoardSocket.LEFT)
-        monoRight.setResolution(dai.MonoCameraProperties.SensorResolution.THE_400_P)
-        monoLeft.setResolution(dai.MonoCameraProperties.SensorResolution.THE_400_P)
 
         stereo_manip.initialConfig.setCropRect(topLeft.x, topLeft.y, bottomRight.x, bottomRight.y)
         # manip.setMaxOutputFrameSize(monoRight.getResolutionHeight()*monoRight.getResolutionWidth()*3)
@@ -235,16 +242,26 @@ class OakDCamera:
 
         # Linking
         # configIn.out.link(manip.inputConfig)
-        monoRight.out.link(stereo.right)
-        monoLeft.out.link(stereo.left)
+        right_cam.out.link(stereo.right)
+        left_cam.out.link(stereo.left)
         stereo.depth.link(stereo_manip.inputImage)
         stereo_manip.out.link(xout_depth.input)
 
     def create_obstacle_dist_pipeline(self):
 
-        # Define sources and outputs
-        monoLeft = self.pipeline.create(dai.node.MonoCamera)
-        monoRight = self.pipeline.create(dai.node.MonoCamera)
+        if self.rgb_resolution == '1200p':
+            right_cam = self.pipeline.create(dai.node.ColorCamera)
+            left_cam = self.pipeline.create(dai.node.ColorCamera)
+        else:
+            right_cam = self.pipeline.create(dai.node.MonoCamera)
+            left_cam = self.pipeline.create(dai.node.MonoCamera)
+            right_cam.setResolution(dai.MonoCameraProperties.SensorResolution.THE_400_P)
+            left_cam.setResolution(dai.MonoCameraProperties.SensorResolution.THE_400_P)
+        
+        # Properties
+        right_cam.setBoardSocket(dai.CameraBoardSocket.CAM_C)
+        left_cam.setBoardSocket(dai.CameraBoardSocket.CAM_B)
+
         stereo = self.pipeline.create(dai.node.StereoDepth)
         spatialLocationCalculator = self.pipeline.create(dai.node.SpatialLocationCalculator)
 
@@ -255,12 +272,6 @@ class OakDCamera:
         # xoutDepth.setStreamName("depth")
         xoutSpatialData.setStreamName("spatialData")
         xinSpatialCalcConfig.setStreamName("spatialCalcConfig")
-
-        # Properties
-        monoLeft.setResolution(dai.MonoCameraProperties.SensorResolution.THE_400_P)
-        monoLeft.setBoardSocket(dai.CameraBoardSocket.LEFT)
-        monoRight.setResolution(dai.MonoCameraProperties.SensorResolution.THE_400_P)
-        monoRight.setBoardSocket(dai.CameraBoardSocket.RIGHT)
 
         stereo.setDefaultProfilePreset(dai.node.StereoDepth.PresetMode.HIGH_DENSITY)
         stereo.setLeftRightCheck(True)
@@ -279,8 +290,8 @@ class OakDCamera:
             # -.75 -.75 +.75 +.75
             
         # Linking
-        monoLeft.out.link(stereo.left)
-        monoRight.out.link(stereo.right)
+        left_cam.out.link(stereo.left)
+        right_cam.out.link(stereo.right)
 
         # spatialLocationCalculator.passthroughDepth.link(xoutDepth.input)
         stereo.depth.link(spatialLocationCalculator.inputDepth)
