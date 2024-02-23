@@ -12,6 +12,7 @@ from typing import Tuple
 import donkeycar as dk
 from donkeycar import utils
 from donkeycar.utils import clamp
+import struct
 
 logger = logging.getLogger(__name__)
 
@@ -185,7 +186,6 @@ class GTK():
         # Import necessary libraries
         from serial import Serial
         import crcmod
-        import struct.pack
 
         # Connect to the serial port
         try:
@@ -226,7 +226,7 @@ class GTK():
         self.ser.write(packet)
 
     def __float_to_byte(self, f):
-        return self.pack('f', f).zfill(4)
+        return struct.pack('f', f).zfill(4)
 
 class VESC:
     ''' 
