@@ -22,12 +22,12 @@ class ImageAugmentation:
                 logger.info(f'Creating augmentation {aug_type} {b_limit}')
                 bightness = np.random.uniform(-b_limit, b_limit)
                 return lambda img_arr: addWeighted(img_arr, 1.0 + bightness, img_arr, 0, 0)
-                
         
         elif aug_type == 'BLUR':
-            b_range = getattr(config, 'AUG_BLUR_RANGE', 3)
+            b_range = getattr(config, 'AUG_BLUR_RANGE', (0,3))
             logger.info(f'Creating augmentation {aug_type} {b_range}')
-            return lambda img_arr: GaussianBlur(img_arr, (13, 13), b_range)
+            bur_intensity = np.random.uniform(b_range[0], b_range[1])
+            return lambda img_arr: GaussianBlur(img_arr, (13,13), bur_intensity)
         
     # Parts interface
     def run(self, img_arr):
