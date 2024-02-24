@@ -306,7 +306,7 @@ class OakDCamera:
 
 
     def run(self):
-
+        print("bhhhh")
         # Grab the frame from the stream 
         if self.queue_xout is not None:
             data_xout = self.queue_xout.get() # blocking
@@ -361,6 +361,7 @@ class OakDCamera:
         # return self.frame
 
     def run_threaded(self):
+        print("ahhhh")
         if self.three_image_return:
             print("center", self.frame_xout.shape)
             print("left", self.frame_left.shape)
