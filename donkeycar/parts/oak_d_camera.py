@@ -47,7 +47,7 @@ class OakDCamera:
 
         self.rgb_resolution = rgb_resolution
 
-        self.three_image_return = False
+        self.three_image_return = three_image_return
         
         self.queue_xout = None
         self.queue_xout_depth = None
