@@ -361,6 +361,23 @@ class OakDCamera:
 
     def run_threaded(self):
         print("ahhhh")
+        # Grab the frame from the stream 
+        if self.queue_xout is not None:
+            data_xout = self.queue_xout.get() # blocking
+            image_data_xout = data_xout.getFrame()
+            self.frame_xout = np.moveaxis(image_data_xout,0,-1)
+        if self.three_image_return:
+            # Retrieve the left camera frame
+            if self.queue_left is not None and self.queue_left.has():
+                data_left = self.queue_left.get()
+                self.frame_left = data_left.getCvFrame()
+                # self.frame_left = np.moveaxis(image_data_xout_left,0,-1)
+
+            # Retrieve the right camera frame
+            if self.queue_right is not None and self.queue_right.has():
+                data_right = self.queue_right.get()
+                self.frame_right = data_right.getCvFrame()
+                # self.frame_right = np.moveaxis(self.frame_right,0,-1)
         if self.three_image_return:
             # print("center", self.frame_xout.shape)
             # print("left", self.frame_left.shape)
