@@ -362,6 +362,9 @@ class OakDCamera:
 
     def run_threaded(self):
         if self.three_image_return:
+            print("center", self.frame_xout.shape)
+            print("left", self.frame_left.shape)
+            print("right", self.frame_right.shape)
             return self.frame_xout, self.frame_left, self.frame_right
         elif self.enable_depth:
             return self.frame_xout,self.frame_xout_depth
