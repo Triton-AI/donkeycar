@@ -161,13 +161,30 @@ class OakDCamera:
             self.device = dai.Device(self.pipeline)
 
             warming_time = time.time() + 5  # seconds
+
+            if self.three_image_return:
+                self.queue_left = self.device.getOutputQueue(name="left", maxSize=1, blocking=False)
+                self.queue_right = self.device.getOutputQueue(name="right", maxSize=1, blocking=False)
+                xout_left = self.pipeline.create(dai.node.XLinkOut)
+                xout_right = self.pipeline.create(dai.node.XLinkOut)
+                xout_left.setStreamName("left")
+                xout_right.setStreamName("right")
+            
+            if self.three_image_return or enable_depth:
+                # Create depth nodes
+                monoRight = self.pipeline.create(dai.node.MonoCamera)
+                monoLeft = self.pipeline.create(dai.node.MonoCamera)
+                # Properties
+                monoLeft.setBoardSocket(dai.CameraBoardSocket.LEFT)
+                monoRight.setBoardSocket(dai.CameraBoardSocket.RIGHT)
+                monoLeft.setResolution(dai.MonoCameraProperties.SensorResolution.THE_400_P)
+                monoRight.setResolution(dai.MonoCameraProperties.SensorResolution.THE_400_P)    
+                monoLeft.out.link(xout_left.input)
+                monoRight.out.link(xout_right.input)
                 
-            if enable_depth:
+            elif enable_depth:
                 self.queue_xout = self.device.getOutputQueue("xout", maxSize=1, blocking=False)
                 self.queue_xout_depth = self.device.getOutputQueue("xout_depth", maxSize=1, blocking=False)
-                if self.three_image_return:
-                    self.queue_left = self.device.getOutputQueue(name="left", maxSize=1, blocking=False)
-                    self.queue_right = self.device.getOutputQueue(name="right", maxSize=1, blocking=False)
             
                 # Get the first frame or timeout
                 while (self.frame_xout is None or self.frame_xout_depth is None) and time.time() < warming_time:
@@ -203,26 +220,9 @@ class OakDCamera:
             raise
 
     def create_depth_pipeline(self):
-        
-        # Create depth nodes
-        monoRight = self.pipeline.create(dai.node.MonoCamera)
-        monoLeft = self.pipeline.create(dai.node.MonoCamera)
-        # Properties
-        monoLeft.setBoardSocket(dai.CameraBoardSocket.LEFT)
-        monoRight.setBoardSocket(dai.CameraBoardSocket.RIGHT)
-        monoLeft.setResolution(dai.MonoCameraProperties.SensorResolution.THE_400_P)
-        monoRight.setResolution(dai.MonoCameraProperties.SensorResolution.THE_400_P)
 
         stereo_manip = self.pipeline.create(dai.node.ImageManip)
         stereo = self.pipeline.create(dai.node.StereoDepth)
-
-        if self.three_image_return:
-            xout_left = self.pipeline.create(dai.node.XLinkOut)
-            xout_right = self.pipeline.create(dai.node.XLinkOut)
-            xout_left.setStreamName("left")
-            xout_right.setStreamName("right")
-            monoLeft.out.link(xout_left.input)
-            monoRight.out.link(xout_right.input)
 
         # Better handling for occlusions:
         stereo.setLeftRightCheck(True)
