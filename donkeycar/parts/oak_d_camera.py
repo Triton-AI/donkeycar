@@ -74,7 +74,7 @@ class OakDCamera:
         # self.pipeline.setCameraTuningBlobPath('/tuning_color_ov9782_wide_fov.bin')
         self.pipeline.setXLinkChunkSize(0) # This might improve reducing the latency on some systems
 
-        if self.enable_depth:
+        if self.enable_depth or self.three_image_return:
             self.create_depth_pipeline()
 
         if self.enable_obstacle_dist:
@@ -165,22 +165,6 @@ class OakDCamera:
             if self.three_image_return:
                 self.queue_left = self.device.getOutputQueue(name="left", maxSize=1, blocking=False)
                 self.queue_right = self.device.getOutputQueue(name="right", maxSize=1, blocking=False)
-                xout_left = self.pipeline.create(dai.node.XLinkOut)
-                xout_right = self.pipeline.create(dai.node.XLinkOut)
-                xout_left.setStreamName("left")
-                xout_right.setStreamName("right")
-            
-            if self.three_image_return or enable_depth:
-                # Create depth nodes
-                monoRight = self.pipeline.create(dai.node.MonoCamera)
-                monoLeft = self.pipeline.create(dai.node.MonoCamera)
-                # Properties
-                monoLeft.setBoardSocket(dai.CameraBoardSocket.LEFT)
-                monoRight.setBoardSocket(dai.CameraBoardSocket.RIGHT)
-                monoLeft.setResolution(dai.MonoCameraProperties.SensorResolution.THE_400_P)
-                monoRight.setResolution(dai.MonoCameraProperties.SensorResolution.THE_400_P)    
-                monoLeft.out.link(xout_left.input)
-                monoRight.out.link(xout_right.input)
                 
             elif enable_depth:
                 self.queue_xout = self.device.getOutputQueue("xout", maxSize=1, blocking=False)
@@ -220,9 +204,25 @@ class OakDCamera:
             raise
 
     def create_depth_pipeline(self):
+        
+        # Create depth nodes
+        monoRight = self.pipeline.create(dai.node.MonoCamera)
+        monoLeft = self.pipeline.create(dai.node.MonoCamera)
+        # Properties
+        monoLeft.setBoardSocket(dai.CameraBoardSocket.LEFT)
+        monoRight.setBoardSocket(dai.CameraBoardSocket.RIGHT)
+        monoLeft.setResolution(dai.MonoCameraProperties.SensorResolution.THE_400_P)
+        monoRight.setResolution(dai.MonoCameraProperties.SensorResolution.THE_400_P)
 
         stereo_manip = self.pipeline.create(dai.node.ImageManip)
         stereo = self.pipeline.create(dai.node.StereoDepth)
+
+        xout_left = self.pipeline.create(dai.node.XLinkOut)
+        xout_right = self.pipeline.create(dai.node.XLinkOut)
+        xout_left.setStreamName("left")
+        xout_right.setStreamName("right")
+        monoLeft.out.link(xout_left.input)
+        monoRight.out.link(xout_right.input)
 
         # Better handling for occlusions:
         stereo.setLeftRightCheck(True)
@@ -253,6 +253,8 @@ class OakDCamera:
         monoLeft.out.link(stereo.left)
         stereo.depth.link(stereo_manip.inputImage)
         stereo_manip.out.link(xout_depth.input)
+
+        return monoLeft, monoRight
 
     def create_obstacle_dist_pipeline(self):
 
