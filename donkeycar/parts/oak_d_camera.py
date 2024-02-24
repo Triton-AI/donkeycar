@@ -368,10 +368,13 @@ class OakDCamera:
             print("right", self.frame_right.shape)
             return self.frame_xout, self.frame_left, self.frame_right
         elif self.enable_depth:
+            print("depth")
             return self.frame_xout,self.frame_xout_depth
         elif self.enable_obstacle_dist:
+            print("obstacle depth")
             return self.frame_xout, np.array(self.roi_distances)
         else:
+            print("chh")
             return self.frame_xout
 
     def update(self):
