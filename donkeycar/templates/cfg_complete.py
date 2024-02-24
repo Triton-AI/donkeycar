@@ -56,8 +56,7 @@ OAK_D_ISP_SCALE = (1,4)
 OAK_ENABLE_DEPTH_MAP = False # enables depth map output
 OAK_OBSTACLE_DETECTION_ENABLED = False # enable roi distances output
 
-CENTER_IMAGE_RETURN = False
-THREE_IMAGE_RETRUN = True
+THREE_IMAGE_RETRUN = False
 
 # For IMAGE_LIST camera
 # PATH_MASK = "~/mycar/data/tub_1_20-03-12/*.jpg"

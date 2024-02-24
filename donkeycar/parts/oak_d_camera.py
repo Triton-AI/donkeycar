@@ -38,7 +38,6 @@ class OakDCamera:
                  rgb_exposure_time = 2000,
                  rgb_sensor_iso = 1200,
                  rgb_wb_manual= 2800,
-                 center_image_return = False,
                  three_image_return = False):
 
         
@@ -48,7 +47,6 @@ class OakDCamera:
 
         self.rgb_resolution = rgb_resolution
 
-        self.center_image_return = False
         self.three_image_return = False
         
         self.queue_xout = None
@@ -167,7 +165,7 @@ class OakDCamera:
             if enable_depth:
                 self.queue_xout = self.device.getOutputQueue("xout", maxSize=1, blocking=False)
                 self.queue_xout_depth = self.device.getOutputQueue("xout_depth", maxSize=1, blocking=False)
-                if self.center_image_return == False:
+                if self.three_image_return:
                     self.queue_left = self.device.getOutputQueue(name="left", maxSize=1, blocking=False)
                     self.queue_right = self.device.getOutputQueue(name="right", maxSize=1, blocking=False)
             
@@ -218,7 +216,7 @@ class OakDCamera:
         stereo_manip = self.pipeline.create(dai.node.ImageManip)
         stereo = self.pipeline.create(dai.node.StereoDepth)
 
-        if not self.center_image_return:
+        if self.three_image_return:
             xout_left = self.pipeline.create(dai.node.XLinkOut)
             xout_right = self.pipeline.create(dai.node.XLinkOut)
             xout_left.setStreamName("left")
@@ -312,7 +310,7 @@ class OakDCamera:
             data_xout = self.queue_xout.get() # blocking
             image_data_xout = data_xout.getFrame()
             self.frame_xout = np.moveaxis(image_data_xout,0,-1)
-        if self.center_image_return == False:
+        if self.three_image_return:
             # Retrieve the left camera frame
             if self.queue_left is not None and self.queue_left.has():
                 data_left = self.queue_left.get()
@@ -361,9 +359,7 @@ class OakDCamera:
         # return self.frame
 
     def run_threaded(self):
-        if self.center_image_return:
-            return self.frame_xout
-        elif self.three_image_return:
+        if self.three_image_return:
             return self.frame_left, self.frame_xout. self.frame_right
         elif self.enable_depth:
             return self.frame_xout,self.frame_xout_depth

@@ -847,7 +847,6 @@ def get_camera(cfg):
                 rgb_exposure_time=cfg.RGB_EXPOSURE_TIME,
                 rgb_sensor_iso=cfg.RGB_SENSOR_ISO,
                 rgb_wb_manual=cfg.RGB_WB_MANUAL,
-                center_image_return=cfg.CENTER_IMAGE_RETURN,
                 three_image_return=cfg.THREE_IMAGE_RETURN
             )
         else:
