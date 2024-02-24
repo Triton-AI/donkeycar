@@ -505,7 +505,7 @@ def drive(cfg, model_path=None, use_joystick=False, model_type=None,
 
     if cfg.CAMERA_TYPE == "OAK" and cfg.THREE_IMAGE_RETURN:
         inputs += ['cam/left_image', 'cam/right_image']
-        types += ['image_array', 'image_array']
+        types += ['gray16_array', 'gray16_array']
 
     if cfg.CAMERA_TYPE == "OAK" and cfg.OAK_OBSTACLE_DETECTION_ENABLED:
         inputs += ['cam/obstacle_distances']
