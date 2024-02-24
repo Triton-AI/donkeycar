@@ -58,7 +58,6 @@ OAK_OBSTACLE_DETECTION_ENABLED = False # enable roi distances output
 
 CENTER_IMAGE_RETURN = False
 THREE_IMAGE_RETRUN = True
-DEPTH_IMAGE_RETURN = False
 
 # For IMAGE_LIST camera
 # PATH_MASK = "~/mycar/data/tub_1_20-03-12/*.jpg"

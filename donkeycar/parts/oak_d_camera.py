@@ -39,8 +39,7 @@ class OakDCamera:
                  rgb_sensor_iso = 1200,
                  rgb_wb_manual= 2800,
                  center_image_return = False,
-                 three_image_return = False,
-                 depth_image_return = False):
+                 three_image_return = False):
 
         
         self.on = False
@@ -51,7 +50,6 @@ class OakDCamera:
 
         self.center_image_return = False
         self.three_image_return = False
-        self.depth_image_return = False
         
         self.queue_xout = None
         self.queue_xout_depth = None
@@ -367,8 +365,6 @@ class OakDCamera:
             return self.frame_xout
         elif self.three_image_return:
             return self.frame_left, self.frame_xout. self.frame_right
-        elif self.depth_image_return:
-            return self.frame_xout_depth
         elif self.enable_depth:
             return self.frame_xout,self.frame_xout_depth
         elif self.enable_obstacle_dist:
