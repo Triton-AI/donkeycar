@@ -162,11 +162,10 @@ class OakDCamera:
 
             warming_time = time.time() + 5  # seconds
 
-            if self.three_image_return:
+            if self.three_image_return or enable_depth:
                 self.queue_left = self.device.getOutputQueue(name="left", maxSize=1, blocking=False)
                 self.queue_right = self.device.getOutputQueue(name="right", maxSize=1, blocking=False)
                 
-            elif enable_depth:
                 self.queue_xout = self.device.getOutputQueue("xout", maxSize=1, blocking=False)
                 self.queue_xout_depth = self.device.getOutputQueue("xout_depth", maxSize=1, blocking=False)
             
