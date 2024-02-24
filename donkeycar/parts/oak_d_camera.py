@@ -360,7 +360,7 @@ class OakDCamera:
 
     def run_threaded(self):
         if self.three_image_return:
-            return self.frame_left, self.frame_xout. self.frame_right
+            return self.frame_xout, self.frame_left, self.frame_right
         elif self.enable_depth:
             return self.frame_xout,self.frame_xout_depth
         elif self.enable_obstacle_dist:

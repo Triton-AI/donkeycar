@@ -503,6 +503,10 @@ def drive(cfg, model_path=None, use_joystick=False, model_type=None,
         inputs += ['cam/depth_array']
         types += ['gray16_array']
 
+    if cfg.CAMERA_TYPE == "OAK" and cfg.THREE_IMAGE_RETURN:
+        inputs += ['cam/left_image', 'cam/right_image']
+        types += ['image_array', 'image_array']
+
     if cfg.CAMERA_TYPE == "OAK" and cfg.OAK_OBSTACLE_DETECTION_ENABLED:
         inputs += ['cam/obstacle_distances']
         types += ['np_array']
@@ -911,6 +915,11 @@ def add_camera(V, cfg, camera_type):
         cam = get_camera(cfg)
         V.add(cam, inputs=[],
               outputs=['cam/image_array', 'cam/depth_array'],
+              threaded=True)
+    elif cfg.CAMERA_TYPE == "OAK" and cfg.THREE_IMAGE_RETURN:
+        cam = get_camera(cfg)
+        V.add(cam, inputs=[],
+              outputs=['cam/image_array', 'cam/left_image', 'cam/right_image'],
               threaded=True)
     else:
         inputs = []
