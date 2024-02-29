@@ -503,6 +503,10 @@ def drive(cfg, model_path=None, use_joystick=False, model_type=None,
         inputs += ['cam/depth_array']
         types += ['gray16_array']
 
+    if cfg.CAMERA_TYPE == "OAK" and cfg.THREE_IMAGE_RETURN:
+        inputs += ['cam/left_image', 'cam/right_image']
+        types += ['gray16_array', 'gray16_array']
+
     if cfg.CAMERA_TYPE == "OAK" and cfg.OAK_OBSTACLE_DETECTION_ENABLED:
         inputs += ['cam/obstacle_distances']
         types += ['np_array']
@@ -846,7 +850,8 @@ def get_camera(cfg):
                 rgb_apply_manual_conf=cfg.RGB_APPLY_MANUAL_CONF,
                 rgb_exposure_time=cfg.RGB_EXPOSURE_TIME,
                 rgb_sensor_iso=cfg.RGB_SENSOR_ISO,
-                rgb_wb_manual=cfg.RGB_WB_MANUAL
+                rgb_wb_manual=cfg.RGB_WB_MANUAL,
+                three_image_return=cfg.THREE_IMAGE_RETURN
             )
         else:
             raise(Exception("Unkown camera type: %s" % cfg.CAMERA_TYPE))
@@ -910,6 +915,11 @@ def add_camera(V, cfg, camera_type):
         cam = get_camera(cfg)
         V.add(cam, inputs=[],
               outputs=['cam/image_array', 'cam/depth_array'],
+              threaded=True)
+    elif cfg.CAMERA_TYPE == "OAK" and cfg.THREE_IMAGE_RETURN:
+        cam = get_camera(cfg)
+        V.add(cam, inputs=[],
+              outputs=['cam/image_array', 'cam/left_image', 'cam/right_image'],
               threaded=True)
     else:
         inputs = []
