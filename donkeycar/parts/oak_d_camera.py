@@ -56,6 +56,8 @@ class OakDCamera:
 
         self.frame_xout = None
         self.frame_xout_depth = None
+        self.frame_left = None
+        self.frame_right = None
         
         # depth config
         # Closer-in minimum depth, disparity range is doubled (from 95 to 190):
@@ -165,12 +167,14 @@ class OakDCamera:
             if self.three_image_return or enable_depth:
                 self.queue_left = self.device.getOutputQueue(name="left", maxSize=1, blocking=False)
                 self.queue_right = self.device.getOutputQueue(name="right", maxSize=1, blocking=False)
+                print(self.queue_left.has(), "ll")
                 
                 self.queue_xout = self.device.getOutputQueue("xout", maxSize=1, blocking=False)
+                print(self.queue_xout.has(), "ll2")
                 self.queue_xout_depth = self.device.getOutputQueue("xout_depth", maxSize=1, blocking=False)
             
                 # Get the first frame or timeout
-                while (self.frame_xout is None or self.frame_xout_depth is None) and time.time() < warming_time:
+                while (self.frame_left is None or self.frame_right is None or self.frame_xout is None or self.frame_xout_depth is None) and time.time() < warming_time:
                     logger.info("...warming RGB and depth cameras")
                     self.run()
                     time.sleep(0.2)
@@ -252,8 +256,7 @@ class OakDCamera:
         monoLeft.out.link(stereo.left)
         stereo.depth.link(stereo_manip.inputImage)
         stereo_manip.out.link(xout_depth.input)
-
-        return monoLeft, monoRight
+        print("lol")
 
     def create_obstacle_dist_pipeline(self):
 
@@ -360,7 +363,6 @@ class OakDCamera:
         # return self.frame
 
     def run_threaded(self):
-        print("ahhhh")
         # Grab the frame from the stream 
         if self.queue_xout is not None:
             data_xout = self.queue_xout.get() # blocking
@@ -370,27 +372,21 @@ class OakDCamera:
             # Retrieve the left camera frame
             if self.queue_left is not None and self.queue_left.has():
                 data_left = self.queue_left.get()
-                self.frame_left = data_left.getCvFrame()
+                self.frame_left = data_left.getFrame()
                 # self.frame_left = np.moveaxis(image_data_xout_left,0,-1)
 
             # Retrieve the right camera frame
             if self.queue_right is not None and self.queue_right.has():
                 data_right = self.queue_right.get()
-                self.frame_right = data_right.getCvFrame()
+                self.frame_right = data_right.getFrame()
                 # self.frame_right = np.moveaxis(self.frame_right,0,-1)
         if self.three_image_return:
-            # print("center", self.frame_xout.shape)
-            # print("left", self.frame_left.shape)
-            # print("right", self.frame_right.shape)
             return self.frame_xout, self.frame_left, self.frame_right
         elif self.enable_depth:
-            print("depth")
             return self.frame_xout,self.frame_xout_depth
         elif self.enable_obstacle_dist:
-            print("obstacle depth")
             return self.frame_xout, np.array(self.roi_distances)
         else:
-            print("chh")
             return self.frame_xout
 
     def update(self):
@@ -410,3 +406,9 @@ class OakDCamera:
         self.queue = None
         self.pipeline = None
         
+if __name__ == "__main__":
+    # Code to be executed when the script is run as the main module
+    cam = OakDCamera(three_image_return=True, width=800, height=600)#.with_width(800).with_height(600).with_framerate(30).build()
+    frame = cam.run_threaded()
+    print(frame)
+    print(np.all(frame[1] == 255), np.all(frame[2] == 255))
