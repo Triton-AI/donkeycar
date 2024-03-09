@@ -1131,3 +1131,107 @@ def default_latent(num_outputs, input_shape):
         
     model = Model(inputs=[img_in], outputs=outputs, name='latent')
     return model
+
+class KerasRGBD(KerasPilot):
+    """
+    Built on top of KerasLinear. Adding depth map to the input
+    """
+    def __init__(self, interpreter: Interpreter = KerasInterpreter(), input_shape=(120, 160, 3), num_sensors=1):
+        self.input_shape = input_shape
+        self.num_sensors = num_sensors
+        self.model = self.create_model()
+        super().__init__(interpreter, input_shape)
+        # super().__init__(interpreter, input_shape)
+
+    def compile(self):
+        self.interpreter.compile(optimizer=self.optimizer, loss='mse')
+
+    def create_model(self):
+        input_shape = self.input_shape
+        depth_input_shape = input_shape[:2]
+        num_sensors = self.num_sensors
+        drop = 0.2
+        img_in = Input(shape=input_shape, name='img_in')
+        
+        x = core_cnn_layers(img_in, drop)
+        x = Dense(100, activation='relu', name='dense_1_1')(x)
+        x = Dropout(drop)(x)
+        x = Dense(50, activation='relu', name='dense_2_1')(x)
+        x = Dropout(drop)(x)
+        # up to here, this is the standard linear model, now we add the
+        # sensor data to it
+        depth_in = Input(shape=depth_input_shape, name='depth_in')
+        y = depth_in
+        y = core_cnn_layers(img_in, drop)
+        y = Dense(100, activation='relu', name='dense_1_2')(x)
+        y = Dropout(drop)(x)
+        y = Dense(50, activation='relu', name='dense_2_2')(x)
+        y = Dropout(drop)(x)
+
+        z = concatenate([x, y])
+        # here we add two more dense layers
+        z = Dense(50, activation='relu', name='dense_3')(z)
+        z = Dropout(drop)(z)
+        z = Dense(50, activation='relu', name='dense_4')(z)
+        z = Dropout(drop)(z)
+        # two outputs for angle and throttle
+        outputs = [
+            Dense(1, activation='linear', name='n_outputs' + str(i))(z)
+            for i in range(2)]
+
+        # the model needs to specify the additional input here
+        model = Model(inputs=[img_in, depth_in], outputs=outputs)
+        return model
+    
+    def x_transform(self,
+            record: Union[TubRecord, List[TubRecord]],
+            img_processor: Callable[[np.ndarray], np.ndarray]) -> XY:
+        # img_arr = super().x_transform(record, img_processor)
+        img_arr = record.image(processor=img_processor, as_nparray=True)
+        # for simplicity we assume the sensor data here is normalised
+        depth_arr = record.depth(as_nparray=True)
+        # we need to return the image data first
+        return {'img_in': img_arr, 'depth_in': depth_arr}
+    
+    # def x_translate(self, x: XY) -> Dict[str, Union[float, np.ndarray]]:
+    #     assert isinstance(x, tuple), 'Requires tuple as input'
+    #     # the keys are the names of the input layers of the model
+    #     return { x[0],  x[1]}
+    
+    def y_transform(self, record: TubRecord):
+        angle: float = record.underlying['user/angle']
+        throttle: float = record.underlying['user/throttle']
+        return {'n_outputs0': angle, 'n_outputs1': throttle}
+
+    # def y_translate(self, y: XY) -> Dict[str, Union[float, np.ndarray]]:
+    #     if isinstance(y, tuple):
+    #         angle, throttle = y
+    #         # the keys are the names of the output layers of the model
+    #         return
+    #     else:
+    #         raise TypeError('Expected tuple')
+
+    def interpreter_to_output(self, interpreter_out):
+        steering = interpreter_out[0]
+        throttle = interpreter_out[1]
+        return steering[0], throttle[0]
+    
+    def inference(self, img_arr, other_arr):
+        img_arr = img_arr.reshape((1,) + img_arr.shape)
+        depth_arr = other_arr.reshape((1,) + other_arr.shape)
+        outputs = self.model.predict([img_arr, depth_arr])
+        steering = outputs[0]
+        throttle = outputs[1]
+        return steering[0][0], throttle[0][0]
+    
+    def output_shapes(self):
+        # need to cut off None from [None, 120, 160, 3] tensor shape
+        img_shape = self.get_input_shape("img_in")[1:]
+        depth_shape = self.get_input_shape("depth_in")[1:]
+
+        # the keys need to match the models input/output layers
+        shapes = ({'img_in': tf.TensorShape(img_shape),
+                   'depth_in': tf.TensorShape(depth_shape)},
+                  {'n_outputs0': tf.TensorShape([]),
+                   'n_outputs1': tf.TensorShape([])})
+        return shapes
