@@ -42,6 +42,7 @@ class TubRecord(object):
         self.underlying = underlying
         self._cache_images = getattr(self.config, 'CACHE_IMAGES', True)
         self._image: Optional[Any] = None
+        self._depth: Optional[Any] = None
 
     def image(self, processor=None, as_nparray=True) -> np.ndarray:
         """
@@ -71,6 +72,35 @@ class TubRecord(object):
         else:
             _image = self._image
         return _image
+    
+    def depth(self, processor=None, as_nparray=True) -> np.ndarray:
+        """
+        Loads the depth map.
+
+        :param processor:   Image processing like augmentations or cropping, if
+                            not None. Defaults to None.
+        :param as_nparray:  Whether to convert the image to a np array of uint8.
+                            Defaults to True. If false, returns result of
+                            Image.open()
+        :return:            Image
+        """
+        if self._depth is None:
+            depth_path = self.underlying['cam/depth_array']
+            full_path = os.path.join(self.base_path, 'images', depth_path)
+
+            if as_nparray:
+                _depth = load_image(full_path, cfg=self.config)
+            else:
+                # If you just want the raw Image
+                _depth = load_pil_image(full_path, cfg=self.config)
+            if processor:
+                _depth = processor(_depth)
+            # only cache images if config does not forbid it
+            if self._cache_images:
+                self._depth = _depth
+        else:
+            _depth = self._depth
+        return _depth
 
     def __repr__(self) -> str:
         return repr(self.underlying)
