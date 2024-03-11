@@ -1235,3 +1235,26 @@ class KerasRGBD(KerasPilot):
                   {'n_outputs0': tf.TensorShape([]),
                    'n_outputs1': tf.TensorShape([])})
         return shapes
+    
+    def run(self, img_arr: np.ndarray, *other_arr: List[float]) \
+            -> Tuple[Union[float, np.ndarray], ...]:
+        """
+        Donkeycar parts interface to run the part in the loop.
+
+        :param img_arr:     uint8 [0,255] numpy array with image data
+        :param other_arr:   numpy array of additional data to be used in the
+                            pilot, like IMU array for the IMU model or a
+                            state vector in the Behavioural model
+        :return:            tuple of (angle, throttle)
+        """
+        # norm_img_arr = normalize_image(img_arr)
+        np_other_array = tuple(np.array(arr) for arr in other_arr)
+        # create dictionary on the fly, we expect the order of the arguments:
+        # img_arr, *other_arr to exactly match the order of the
+        # self.output_shape() first dictionary keys, because that's how we
+        # set up the model
+        # values = (norm_img_arr, ) + np_other_array
+        # note output_shapes() returns a 2-tuple of dicts for input shapes
+        # and output shapes(), so we need the first tuple here
+        input_dict = {'img_in': img_arr, 'depth_in': np_other_array}
+        return self.inference_from_dict(input_dict)
