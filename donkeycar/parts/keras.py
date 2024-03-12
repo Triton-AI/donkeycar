@@ -1247,14 +1247,15 @@ class KerasRGBD(KerasPilot):
                             state vector in the Behavioural model
         :return:            tuple of (angle, throttle)
         """
-        # norm_img_arr = normalize_image(img_arr)
+        norm_img_arr = normalize_image(img_arr)
+        # print(f"OTHER ARRAY SHAPE: {len(other_arr)}")
         np_other_array = tuple(np.array(arr) for arr in other_arr)
         # create dictionary on the fly, we expect the order of the arguments:
         # img_arr, *other_arr to exactly match the order of the
         # self.output_shape() first dictionary keys, because that's how we
         # set up the model
-        # values = (norm_img_arr, ) + np_other_array
+        values = (norm_img_arr, ) + np_other_array
         # note output_shapes() returns a 2-tuple of dicts for input shapes
         # and output shapes(), so we need the first tuple here
-        input_dict = {'img_in': img_arr, 'depth_in': np_other_array}
+        input_dict = dict(zip(self.output_shapes()[0].keys(), values))
         return self.inference_from_dict(input_dict)
