@@ -1,6 +1,7 @@
 import logging
 import time
 from collections import deque
+import cv2
 import numpy as np
 try:
     import depthai as dai
@@ -307,7 +308,7 @@ class OakDCamera:
 
         if self.queue_xout_depth is not None:
             data_xout_depth = self.queue_xout_depth.get()
-            self.frame_xout_depth = data_xout_depth.getFrame()
+            self.frame_xout_depth = cv2.resize(data_xout_depth.getFrame(), (self.frame_xout.shape[1], self.frame_xout.shape[0]))
 
         if self.queue_xout_spatial_data is not None:
             xout_spatial_data = self.queue_xout_spatial_data.get().getSpatialLocations()
