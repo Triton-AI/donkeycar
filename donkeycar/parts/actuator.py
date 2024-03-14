@@ -215,6 +215,8 @@ class GTK():
 
         throttle = throttle * self.speed_multiplier
 
+        print(f"throttle: {throttle}, angle: {angle}")
+
         # Convert the floats to bytes
         throttle = self.__float_to_byte(throttle)
         angle = self.__float_to_byte(angle)
