@@ -182,7 +182,7 @@ class PCA9685:
         self.set_pulse(pulse)
 
 class GTK():
-    def __init__(self, serial_port):    
+    def __init__(self, serial_port, speed_multiplier):    
         # Import necessary libraries
         from serial import Serial
         import crcmod
@@ -197,6 +197,7 @@ class GTK():
         # Set the crc16
         self.crc16 = crcmod.mkCrcFun(0x11021, initCrc=0x0000, rev=False)
         self.pack = struct.pack
+        self.speed_multiplier = speed_multiplier
 
     def run(self, angle, throttle):  
         # check if angle is NoneType
@@ -213,7 +214,7 @@ class GTK():
             # print(f'{Style.BRIGHT+Fore.YELLOW}Steer value out of range, set to {steer}{Style.RESET_ALL}')
 
         # Convert the floats to bytes
-        throttle = self.__float_to_byte(throttle)
+        throttle = self.__float_to_byte(throttle) * self.speed_multiplier
         angle = self.__float_to_byte(angle)
         brake = self.__float_to_byte(0.0)
 

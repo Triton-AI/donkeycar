@@ -254,6 +254,7 @@ VESC_STEERING_SCALE= 0.5 # VESC accepts steering inputs from 0 to 1. Joystick is
 VESC_STEERING_OFFSET = 0.5 # VESC accepts steering inputs from 0 to 1. Coupled with above change we move Joystick to 0 to 1
 
 GTK_SERIAL_PORT = "/dev/ttyUSB0"
+GTK_SPEED_MULTIPLIER = 20.0
 
 #
 # DC_STEER_THROTTLE with one motor as steering, one as drive
