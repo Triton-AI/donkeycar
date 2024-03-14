@@ -214,7 +214,7 @@ class GTK():
             # print(f'{Style.BRIGHT+Fore.YELLOW}Steer value out of range, set to {steer}{Style.RESET_ALL}')
 
         # Convert the floats to bytes
-        throttle = self.__float_to_byte(throttle) * self.speed_multiplier
+        throttle = self.__float_to_byte(throttle * self.speed_multiplier )
         angle = self.__float_to_byte(angle)
         brake = self.__float_to_byte(0.0)
 
