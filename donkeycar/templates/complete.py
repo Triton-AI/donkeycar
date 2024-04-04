@@ -1178,7 +1178,11 @@ def add_drivetrain(V, cfg):
                           cfg.VESC_STEERING_OFFSET
                         )
             V.add(vesc, inputs=['steering', 'throttle'])
-
+        elif cfg.DRIVE_TRAIN_TYPE == "GTK":
+            from donkeycar.parts.actuator import GTK
+            logger.info("Creating GTK at port {}".format(cfg.GTK_SERIAL_PORT))
+            gtk = GTK(cfg.GTK_SERIAL_PORT, cfg.GTK_SPEED_MULTIPLIER)
+            V.add(gtk, inputs=['steering', 'throttle'])
 
 if __name__ == '__main__':
     args = docopt(__doc__)
