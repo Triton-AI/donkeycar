@@ -388,8 +388,8 @@ def drive(cfg, model_path=None, use_joystick=False, model_type=None,
             inputs = ['cam/image_array', 'imu_array']
         elif model_type == "rgbd":
             assert cfg.OAK_ENABLE_DEPTH_MAP, 'Missing enable depth map config for OAK'
-            inputs = ['cam/image_array']
-            types = ['image_array']
+            inputs = ['cam/image_array', 'cam/depth_array']
+            types = ['image_array', 'gray16_array']
         else:
             inputs = ['cam/image_array']
 
