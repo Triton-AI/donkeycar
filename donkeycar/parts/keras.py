@@ -1162,7 +1162,7 @@ class KerasRGBD(KerasPilot):
         # sensor data to it
         depth_in = Input(shape=depth_input_shape, name='depth_in')
         y = depth_in
-        y = core_cnn_layers(img_in, drop)
+        y = core_cnn_layers(depth_in, drop)
         y = Dense(100, activation='relu', name='dense_1_2')(x)
         y = Dropout(drop)(x)
         y = Dense(50, activation='relu', name='dense_2_2')(x)

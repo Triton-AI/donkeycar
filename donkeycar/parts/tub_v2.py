@@ -49,7 +49,11 @@ class Tub(object):
                 input_type = self.input_types[key]
                 if input_type == 'float':
                     # Handle np.float() types gracefully
-                    contents[key] = float(value)
+                    try:
+                        contents[key] = float(value)
+                    except ValueError:
+                        print(f"Value Error: {value}")
+                        print(type(value))
                 elif input_type == 'str':
                     contents[key] = value
                 elif input_type == 'int':
