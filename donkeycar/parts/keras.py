@@ -796,7 +796,7 @@ class KerasLatent(KerasPilot):
         return steering[0][0], throttle[0][0]
 
 
-def conv2d(filters, kernel, strides, layer_num, activation='relu'):
+def conv2d(filters, kernel, strides, layer_num, activation='relu', name='img_in'):
     """
     Helper function to create a standard valid-padded convolutional layer
     with square kernel and strides and unified naming convention
@@ -812,10 +812,10 @@ def conv2d(filters, kernel, strides, layer_num, activation='relu'):
                          kernel_size=(kernel, kernel),
                          strides=(strides, strides),
                          activation=activation,
-                         name='conv2d_' + str(layer_num))
+                         name=f"conv2d_{name}_{str(layer_num)}")
 
 
-def core_cnn_layers(img_in, drop, l4_stride=1):
+def core_cnn_layers(img_in, drop, l4_stride=1, name='img_in'):
     """
     Returns the core CNN layers that are shared among the different models,
     like linear, imu, behavioural
@@ -826,17 +826,17 @@ def core_cnn_layers(img_in, drop, l4_stride=1):
     :return:                stack of CNN layers
     """
     x = img_in
-    x = conv2d(24, 5, 2, 1)(x)
+    x = conv2d(24, 5, 2, 1, name=name)(x)
     x = Dropout(drop)(x)
-    x = conv2d(32, 5, 2, 2)(x)
+    x = conv2d(32, 5, 2, 2, name=name)(x)
     x = Dropout(drop)(x)
-    x = conv2d(64, 5, 2, 3)(x)
+    x = conv2d(64, 5, 2, 3, name=name)(x)
     x = Dropout(drop)(x)
-    x = conv2d(64, 3, l4_stride, 4)(x)
+    x = conv2d(64, 3, l4_stride, 4, name=name)(x)
     x = Dropout(drop)(x)
-    x = conv2d(64, 3, 1, 5)(x)
+    x = conv2d(64, 3, 1, 5, name=name)(x)
     x = Dropout(drop)(x)
-    x = Flatten(name='flattened')(x)
+    x = Flatten(name=f"flattened_{name}")(x)
     return x
 
 
@@ -860,6 +860,7 @@ def default_n_linear(num_outputs, input_shape=(120, 160, 3)):
 
 def default_memory(input_shape=(120, 160, 3), mem_length=3, mem_depth=0):
     drop = 0.2
+
     drop2 = 0.1
     logger.info(f'Creating memory model with length {mem_length}, depth '
                 f'{mem_depth}')
@@ -1148,35 +1149,28 @@ class KerasRGBD(KerasPilot):
 
     def create_model(self):
         input_shape = self.input_shape
-        depth_input_shape = input_shape[:2]
-        num_sensors = self.num_sensors
+        # depth_input_shape = input_shape[:2]
+        # print(f"Input Shape: {input_shape}, Depth Input Shape: {depth_input_shape}")
         drop = 0.2
-        img_in = Input(shape=input_shape, name='img_in')
-        
-        x = core_cnn_layers(img_in, drop)
-        x = Dense(100, activation='relu', name='dense_1_1')(x)
-        x = Dropout(drop)(x)
-        x = Dense(50, activation='relu', name='dense_2_1')(x)
-        x = Dropout(drop)(x)
-        # up to here, this is the standard linear model, now we add the
-        # sensor data to it
-        depth_in = Input(shape=depth_input_shape, name='depth_in')
-        y = depth_in
-        y = core_cnn_layers(depth_in, drop)
-        y = Dense(100, activation='relu', name='dense_1_2')(x)
-        y = Dropout(drop)(x)
-        y = Dense(50, activation='relu', name='dense_2_2')(x)
-        y = Dropout(drop)(x)
 
-        z = concatenate([x, y])
-        # here we add two more dense layers
-        z = Dense(50, activation='relu', name='dense_3')(z)
-        z = Dropout(drop)(z)
-        z = Dense(50, activation='relu', name='dense_4')(z)
-        z = Dropout(drop)(z)
+        img_in = Input(shape=input_shape, name='img_in')
+        depth_in = Input(shape=input_shape[:2] + (1,), name='depth_in')
+       
+        x_1 = core_cnn_layers(img_in, drop, name="img_in")
+        x_2 = core_cnn_layers(depth_in, drop, name="depth_in")
+
+        x = concatenate([x_1, x_2])
+        x = Dense(100, activation='relu', name='dense_1')(x)
+        x = Dropout(drop)(x)
+        x = Dense(50, activation='relu', name='dense_2')(x)
+        x = Dropout(drop)(x)
+        x = Dense(50, activation='relu', name='dense_3')(x)
+        x = Dropout(drop)(x)
+        x = Dense(50, activation='relu', name='dense_4')(x)
+        x = Dropout(drop)(x)
         # two outputs for angle and throttle
         outputs = [
-            Dense(1, activation='linear', name='n_outputs' + str(i))(z)
+            Dense(1, activation='linear', name='n_outputs' + str(i))(x)
             for i in range(2)]
 
         # the model needs to specify the additional input here
@@ -1190,6 +1184,7 @@ class KerasRGBD(KerasPilot):
         img_arr = record.image(processor=img_processor, as_nparray=True)
         # for simplicity we assume the sensor data here is normalised
         depth_arr = record.depth(as_nparray=True)
+        depth_arr = np.expand_dims(depth_arr, axis=-1)
         # we need to return the image data first
         return {'img_in': img_arr, 'depth_in': depth_arr}
     
@@ -1226,12 +1221,12 @@ class KerasRGBD(KerasPilot):
     
     def output_shapes(self):
         # need to cut off None from [None, 120, 160, 3] tensor shape
-        img_shape = self.get_input_shape("img_in")[1:]
-        depth_shape = self.get_input_shape("depth_in")[1:]
+        img_shape = self.get_input_shape('img_in')[1:]
+        depth_shape = self.get_input_shape('depth_in')[1:];
 
         # the keys need to match the models input/output layers
         shapes = ({'img_in': tf.TensorShape(img_shape),
-                   'depth_in': tf.TensorShape(depth_shape)},
+                   'depth_in': tf.TensorShape(img_shape[:2]+(1,))},
                   {'n_outputs0': tf.TensorShape([]),
                    'n_outputs1': tf.TensorShape([])})
         return shapes
