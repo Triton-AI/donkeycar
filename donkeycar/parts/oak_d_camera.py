@@ -86,12 +86,14 @@ class OakDCamera:
         if depth == 3:
             # Source
             camera = self.pipeline.create(dai.node.ColorCamera)
+            camera.setBoardSocket(dai.CameraBoardSocket.RGB)
             if self.rgb_resolution == "800p":
                 camera.setResolution(dai.ColorCameraProperties.SensorResolution.THE_800_P)
             elif self.rgb_resolution == "1080p":
                 camera.setResolution(dai.ColorCameraProperties.SensorResolution.THE_1080_P)
             else:
                 camera.setResolution(dai.ColorCameraProperties.SensorResolution.THE_1080_P)
+            camera.setResolution(dai.ColorCameraProperties.SensorResolution.THE_1080_P)
             camera.setInterleaved(False)
             camera.setColorOrder(dai.ColorCameraProperties.ColorOrder.RGB)
 
@@ -101,14 +103,12 @@ class OakDCamera:
             
             if rgb_apply_cropping:
                 camera.setSensorCrop(rgb_sensor_crop_x, rgb_sensor_crop_y) # When croping to keep only smaller video
-
                 camera.setVideoSize(rgb_video_size) # Desired video size = ispscale result or smaller if croping
 
 
             # Resize image
             camera.setPreviewKeepAspectRatio(False)
-            camera.setPreviewSize(width, height) # wich means cropping if aspect ratio kept
-            
+            camera.setVideoSize(width, height) # wich means cropping if aspect ratio kept
             camera.setIspNumFramesPool(1)
             camera.setVideoNumFramesPool(1)
             camera.setPreviewNumFramesPool(1)
@@ -126,7 +126,7 @@ class OakDCamera:
                 camera.initialControl.setAutoWhiteBalanceMode(dai.CameraControl.AutoWhiteBalanceMode.AUTO)
     
             # Link
-            camera.preview.link(xout.input)
+            camera.video.link(xout.input)
 
         elif depth == 1:
             # Source
@@ -295,8 +295,8 @@ class OakDCamera:
         # Grab the frame from the stream 
         if self.queue_xout is not None:
             data_xout = self.queue_xout.get() # blocking
-            image_data_xout = data_xout.getFrame()
-            self.frame_xout = np.moveaxis(image_data_xout,0,-1)
+            image_data_xout = data_xout.getCvFrame()
+            self.frame_xout = cv2.cvtColor(image_data_xout, cv2.COLOR_BGR2RGB)
 
             if logger.isEnabledFor(logging.DEBUG):
                 # Latency in miliseconds 
@@ -334,13 +334,39 @@ class OakDCamera:
         # return self.frame
 
     def run_threaded(self):
+        
+        # Grab the frame from the stream 
+        if self.queue_xout is not None:
+            data_xout = self.queue_xout.get() # blocking
+            image_data_xout = data_xout.getCvFrame()
+            print(f"IMAGE DATA XOUT: {image_data_xout.shape}")
+            self.frame_xout = cv2.cvtColor(image_data_xout, cv2.COLOR_BGR2RGB)
+
+        if self.queue_xout_depth is not None:
+            data_xout_depth = self.queue_xout_depth.get()
+            self.frame_xout_depth = cv2.resize(data_xout_depth.getFrame(), (self.frame_xout.shape[1], self.frame_xout.shape[0]))
+
+        if self.queue_xout_spatial_data is not None:
+            xout_spatial_data = self.queue_xout_spatial_data.get().getSpatialLocations()
+            self.roi_distances = []
+            for depthData in xout_spatial_data:
+                roi = depthData.config.roi
+            
+                coords = depthData.spatialCoordinates
+                
+                self.roi_distances.append(round(roi.topLeft().x,2)) 
+                self.roi_distances.append(round(roi.topLeft().y,2))
+                self.roi_distances.append(round(roi.bottomRight().x,2))
+                self.roi_distances.append(round(roi.bottomRight().y,2))
+                self.roi_distances.append(int(coords.x))
+                self.roi_distances.append(int(coords.y))
+                self.roi_distances.append(int(coords.z))
         if self.enable_depth:
             return self.frame_xout,self.frame_xout_depth
         elif self.enable_obstacle_dist:
             return self.frame_xout, np.array(self.roi_distances)
         else:
             return self.frame_xout
-
     def update(self):
         # Keep looping infinitely until the thread is stopped
         while self.on:
