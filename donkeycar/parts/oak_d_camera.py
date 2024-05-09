@@ -316,7 +316,7 @@ class OakDCamera:
             data_xout = self.queue_xout.get() # blocking
             image_data_xout = data_xout.getFrame()
             self.frame_xout = np.moveaxis(image_data_xout,0,-1)
-            print(self.frame_xout, self.frame_xout.shape, "booo2")
+            print(self.frame_xout, self.frame_xout.shape, type(self.frame_xout), "booo2")
         if self.three_image_return:
             # Retrieve the left camera frame
             if self.queue_left is not None and self.queue_left.has():
@@ -324,7 +324,7 @@ class OakDCamera:
                 self.frame_left = data_left.getCvFrame()
                 self.frame_left = cv2.resize(self.frame_left, (160, 120), interpolation=cv2.INTER_AREA)
                 self.frame_left = np.stack((self.frame_left,)*3, axis=-1)  # Convert single channel to three-channel RGB
-                print(self.frame_left, "boooo", self.frame_left.shape)
+                print(self.frame_left, "boooo", type(self.frame_left), self.frame_left.shape)
                 # self.frame_left = np.moveaxis(image_data_xout_left,0,-1)
 
             # Retrieve the right camera frame
