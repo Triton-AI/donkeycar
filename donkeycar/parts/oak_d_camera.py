@@ -2,7 +2,6 @@ import logging
 import time
 from collections import deque
 import numpy as np
-import cv2
 try:
     import depthai as dai
 except ImportError:
@@ -319,15 +318,15 @@ class OakDCamera:
             # Retrieve the left camera frame
             if self.queue_left is not None and self.queue_left.has():
                 data_left = self.queue_left.get()
-                image_data_xout_left = data_left.getFrame()
-                self.frame_left = cv2.cvtColor(np.moveaxis(image_data_xout_left, 0, -1), cv2.COLOR_GRAY2BGR)
-    
+                self.frame_left = data_left.getCvFrame()
+                # self.frame_left = np.moveaxis(image_data_xout_left,0,-1)
+
             # Retrieve the right camera frame
             if self.queue_right is not None and self.queue_right.has():
                 data_right = self.queue_right.get()
-                image_data_xout_right = data_right.getFrame()
-                self.frame_right = cv2.cvtColor(np.moveaxis(image_data_xout_right, 0, -1), cv2.COLOR_GRAY2BGR)
-    
+                self.frame_right = data_right.getCvFrame()
+                # self.frame_right = np.moveaxis(self.frame_right,0,-1)
+
             if logger.isEnabledFor(logging.DEBUG):
                 # Latency in miliseconds 
                 self.latencies.append((dai.Clock.now() - data_xout.getTimestamp()).total_seconds() * 1000)
@@ -335,11 +334,11 @@ class OakDCamera:
                     logger.debug('Image latency: {:.2f} ms, Average latency: {:.2f} ms, Std: {:.2f}' \
                         .format(self.latencies[-1], np.average(self.latencies), np.std(self.latencies)))
                     self.latencies.clear()
-    
+
         if self.queue_xout_depth is not None:
             data_xout_depth = self.queue_xout_depth.get()
             self.frame_xout_depth = data_xout_depth.getFrame()
-    
+
         if self.queue_xout_spatial_data is not None:
             xout_spatial_data = self.queue_xout_spatial_data.get().getSpatialLocations()
             self.roi_distances = []
@@ -350,7 +349,7 @@ class OakDCamera:
                 # ymin = int(roi.topLeft().y)
                 # xmax = int(roi.bottomRight().x)
                 # ymax = int(roi.bottomRight().y)
-    
+
                 coords = depthData.spatialCoordinates
                 
                 self.roi_distances.append(round(roi.topLeft().x,2)) 
@@ -360,6 +359,8 @@ class OakDCamera:
                 self.roi_distances.append(int(coords.x))
                 self.roi_distances.append(int(coords.y))
                 self.roi_distances.append(int(coords.z))
+
+        # return self.frame
 
     def run_threaded(self):
         # Grab the frame from the stream 
@@ -371,14 +372,14 @@ class OakDCamera:
             # Retrieve the left camera frame
             if self.queue_left is not None and self.queue_left.has():
                 data_left = self.queue_left.get()
-                image_data_xout_left = data_left.getFrame()
-                self.frame_left = cv2.cvtColor(np.moveaxis(image_data_xout_left, 0, -1), cv2.COLOR_GRAY2BGR)
-    
+                self.frame_left = data_left.getFrame()
+                # self.frame_left = np.moveaxis(image_data_xout_left,0,-1)
+
             # Retrieve the right camera frame
             if self.queue_right is not None and self.queue_right.has():
                 data_right = self.queue_right.get()
-                image_data_xout_right = data_right.getFrame()
-                self.frame_right = cv2.cvtColor(np.moveaxis(image_data_xout_right, 0, -1), cv2.COLOR_GRAY2BGR)
+                self.frame_right = data_right.getFrame()
+                # self.frame_right = np.moveaxis(self.frame_right,0,-1)
         if self.three_image_return:
             return self.frame_xout, self.frame_left, self.frame_right
         elif self.enable_depth:
@@ -387,7 +388,7 @@ class OakDCamera:
             return self.frame_xout, np.array(self.roi_distances)
         else:
             return self.frame_xout
-            
+
     def update(self):
         # Keep looping infinitely until the thread is stopped
         while self.on:
