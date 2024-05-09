@@ -303,6 +303,7 @@ class OakDCamera:
             if self.queue_left is not None and self.queue_left.has():
                 data_left = self.queue_left.get()
                 self.frame_left = data_left.getCvFrame()
+                print(self.frame_left, "boooo")
                 # self.frame_left = np.moveaxis(image_data_xout_left,0,-1)
 
             # Retrieve the right camera frame
@@ -357,6 +358,7 @@ class OakDCamera:
             if self.queue_left is not None and self.queue_left.has():
                 data_left = self.queue_left.get()
                 self.frame_left = data_left.getFrame()
+                print(self.frame_left, "boooo")
                 # self.frame_left = np.moveaxis(image_data_xout_left,0,-1)
 
             # Retrieve the right camera frame
