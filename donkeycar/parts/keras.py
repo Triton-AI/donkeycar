@@ -1137,7 +1137,7 @@ class KerasRGBD(KerasPilot):
     """
     Built on top of KerasLinear. Adding depth map to the input
     """
-    def __init__(self, interpreter: Interpreter = KerasInterpreter(), input_shape=(120, 160, 3), num_sensors=1):
+    def __init__(self, interpreter: Interpreter = KerasInterpreter(), input_shape=(450, 600, 3), num_sensors=1):
         self.input_shape = input_shape
         self.num_sensors = num_sensors
         self.model = self.create_model()
