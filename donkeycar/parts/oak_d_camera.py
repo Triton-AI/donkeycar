@@ -315,6 +315,7 @@ class OakDCamera:
             data_xout = self.queue_xout.get() # blocking
             image_data_xout = data_xout.getFrame()
             self.frame_xout = np.moveaxis(image_data_xout,0,-1)
+            print(self.frame_xout, self.frame_xout.shape, "booo2")
         if self.three_image_return:
             # Retrieve the left camera frame
             if self.queue_left is not None and self.queue_left.has():
@@ -370,6 +371,7 @@ class OakDCamera:
             data_xout = self.queue_xout.get() # blocking
             image_data_xout = data_xout.getFrame()
             self.frame_xout = np.moveaxis(image_data_xout,0,-1)
+            print(self.frame_xout, self.frame_xout.shape, "booo2")
         if self.three_image_return:
             # Retrieve the left camera frame
             if self.queue_left is not None and self.queue_left.has():
