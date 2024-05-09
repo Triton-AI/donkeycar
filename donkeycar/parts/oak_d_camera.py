@@ -207,56 +207,42 @@ class OakDCamera:
             raise
 
     def create_depth_pipeline(self):
-        
         # Create depth nodes
         monoRight = self.pipeline.create(dai.node.MonoCamera)
         monoLeft = self.pipeline.create(dai.node.MonoCamera)
-        # Properties
+    
+        # Set properties for left and right cameras
         monoLeft.setBoardSocket(dai.CameraBoardSocket.LEFT)
         monoRight.setBoardSocket(dai.CameraBoardSocket.RIGHT)
         monoLeft.setResolution(dai.MonoCameraProperties.SensorResolution.THE_400_P)
         monoRight.setResolution(dai.MonoCameraProperties.SensorResolution.THE_400_P)
-
-        stereo_manip = self.pipeline.create(dai.node.ImageManip)
-        stereo = self.pipeline.create(dai.node.StereoDepth)
-
+    
+        # Output streams for left and right cameras
         xout_left = self.pipeline.create(dai.node.XLinkOut)
         xout_right = self.pipeline.create(dai.node.XLinkOut)
         xout_left.setStreamName("left")
         xout_right.setStreamName("right")
+    
+        # Link mono cameras to their respective outputs
         monoLeft.out.link(xout_left.input)
         monoRight.out.link(xout_right.input)
-
-        # Better handling for occlusions:
-        stereo.setLeftRightCheck(True)
-        # Closer-in minimum depth, disparity range is doubled:
-        stereo.setExtendedDisparity(True)
-        # Better accuracy for longer distance, fractional disparity 32-levels:
-        stereo.setSubpixel(False)
-        stereo.initialConfig.setMedianFilter(dai.MedianFilter.KERNEL_7x7)
-        stereo.initialConfig.setConfidenceThreshold(200)
-
+    
+        # Create stereo node
+        stereo = self.pipeline.create(dai.node.StereoDepth)
+    
+        # Configure stereo node
+        stereo.setLeftRightCheck(self.lr_check)
+        stereo.setExtendedDisparity(self.extended_disparity)
+        stereo.setSubpixel(self.subpixel)
+    
+        # Output for depth
         xout_depth = self.pipeline.create(dai.node.XLinkOut)
         xout_depth.setStreamName("xout_depth")
-
-        # Crop range
-        topLeft = dai.Point2f(0.1875, 0.0)
-        bottomRight = dai.Point2f(0.8125, 0.25)
-        #    - - > x 
-        #    |
-        #    y
-
-        stereo_manip.initialConfig.setCropRect(topLeft.x, topLeft.y, bottomRight.x, bottomRight.y)
-        # manip.setMaxOutputFrameSize(monoRight.getResolutionHeight()*monoRight.getResolutionWidth()*3)
-        stereo.setDefaultProfilePreset(dai.node.StereoDepth.PresetMode.HIGH_DENSITY)
-
-        # Linking
-        # configIn.out.link(manip.inputConfig)
-        monoRight.out.link(stereo.right)
-        monoLeft.out.link(stereo.left)
-        stereo.depth.link(stereo_manip.inputImage)
-        stereo_manip.out.link(xout_depth.input)
-        print("lol")
+    
+        # Link stereo depth output to the depth output stream
+        stereo.left.link(monoLeft.out)
+        stereo.right.link(monoRight.out)
+        stereo.depth.link(xout_depth.input)
 
     def create_obstacle_dist_pipeline(self):
 
@@ -316,16 +302,15 @@ class OakDCamera:
             self.frame_xout = np.moveaxis(image_data_xout,0,-1)
         if self.three_image_return:
             # Retrieve the left camera frame
-            if self.queue_left is not None and self.queue_left.has():
-                data_left = self.queue_left.get()
-                self.frame_left = data_left.getCvFrame()
-                # self.frame_left = np.moveaxis(image_data_xout_left,0,-1)
-
-            # Retrieve the right camera frame
-            if self.queue_right is not None and self.queue_right.has():
-                data_right = self.queue_right.get()
-                self.frame_right = data_right.getCvFrame()
-                # self.frame_right = np.moveaxis(self.frame_right,0,-1)
+            if self.queue_left is not None:
+                data_left = self.queue_left.tryGet()
+                if data_left:
+                    self.frame_left = data_left.getCvFrame()
+        
+            if self.queue_right is not None:
+                data_right = self.queue_right.tryGet()
+                if data_right:
+                    self.frame_right = data_right.getCvFrame()
 
             if logger.isEnabledFor(logging.DEBUG):
                 # Latency in miliseconds 
