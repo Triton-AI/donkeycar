@@ -47,6 +47,7 @@ class Tub(object):
                 continue
             else:
                 input_type = self.input_types[key]
+                print(input_type)
                 if input_type == 'float':
                     # Handle np.float() types gracefully
                     contents[key] = float(value)
