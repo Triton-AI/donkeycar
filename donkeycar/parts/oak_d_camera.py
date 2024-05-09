@@ -207,43 +207,57 @@ class OakDCamera:
             raise
 
     def create_depth_pipeline(self):
+        
         # Create depth nodes
         monoRight = self.pipeline.create(dai.node.MonoCamera)
         monoLeft = self.pipeline.create(dai.node.MonoCamera)
-    
-        # Set properties for left and right cameras
+        # Properties
         monoLeft.setBoardSocket(dai.CameraBoardSocket.LEFT)
         monoRight.setBoardSocket(dai.CameraBoardSocket.RIGHT)
         monoLeft.setResolution(dai.MonoCameraProperties.SensorResolution.THE_400_P)
         monoRight.setResolution(dai.MonoCameraProperties.SensorResolution.THE_400_P)
-    
-        # Create stereo node
+
+        stereo_manip = self.pipeline.create(dai.node.ImageManip)
         stereo = self.pipeline.create(dai.node.StereoDepth)
-        
-        # Configure stereo node
-        stereo.setLeftRightCheck(self.lr_check)
-        stereo.setExtendedDisparity(self.extended_disparity)
-        stereo.setSubpixel(self.subpixel)
-    
-        # Link mono cameras to stereo node inputs
-        monoLeft.out.link(stereo.left)
-        monoRight.out.link(stereo.right)
-    
-        # Output streams for left and right cameras (for viewing/debugging purposes)
+
         xout_left = self.pipeline.create(dai.node.XLinkOut)
         xout_right = self.pipeline.create(dai.node.XLinkOut)
         xout_left.setStreamName("left")
         xout_right.setStreamName("right")
-    
-        # Link mono cameras to their respective outputs for direct camera output (optional)
         monoLeft.out.link(xout_left.input)
         monoRight.out.link(xout_right.input)
-    
-        # Output for depth
+
+        # Better handling for occlusions:
+        stereo.setLeftRightCheck(True)
+        # Closer-in minimum depth, disparity range is doubled:
+        stereo.setExtendedDisparity(True)
+        # Better accuracy for longer distance, fractional disparity 32-levels:
+        stereo.setSubpixel(False)
+        stereo.initialConfig.setMedianFilter(dai.MedianFilter.KERNEL_7x7)
+        stereo.initialConfig.setConfidenceThreshold(200)
+
         xout_depth = self.pipeline.create(dai.node.XLinkOut)
         xout_depth.setStreamName("xout_depth")
-        stereo.depth.link(xout_depth.input)
-        
+
+        # Crop range
+        topLeft = dai.Point2f(0.1875, 0.0)
+        bottomRight = dai.Point2f(0.8125, 0.25)
+        #    - - > x 
+        #    |
+        #    y
+
+        stereo_manip.initialConfig.setCropRect(topLeft.x, topLeft.y, bottomRight.x, bottomRight.y)
+        # manip.setMaxOutputFrameSize(monoRight.getResolutionHeight()*monoRight.getResolutionWidth()*3)
+        stereo.setDefaultProfilePreset(dai.node.StereoDepth.PresetMode.HIGH_DENSITY)
+
+        # Linking
+        # configIn.out.link(manip.inputConfig)
+        monoRight.out.link(stereo.right)
+        monoLeft.out.link(stereo.left)
+        stereo.depth.link(stereo_manip.inputImage)
+        stereo_manip.out.link(xout_depth.input)
+        print("lol")
+
     def create_obstacle_dist_pipeline(self):
 
         # Define sources and outputs
@@ -302,16 +316,17 @@ class OakDCamera:
             self.frame_xout = np.moveaxis(image_data_xout,0,-1)
         if self.three_image_return:
             # Retrieve the left camera frame
-            if self.queue_left is not None:
-                data_left = self.queue_left.tryGet()
-                if data_left:
-                    self.frame_left = data_left.getCvFrame()
-        
-            if self.queue_right is not None:
-                data_right = self.queue_right.tryGet()
-                if data_right:
-                    self.frame_right = data_right.getCvFrame()
-
+            if self.queue_left is not None and self.queue_left.has():
+                data_left = self.queue_left.get()
+                image_data_xout_left = data_left.getFrame()
+                self.frame_left = cv2.cvtColor(np.moveaxis(image_data_xout_left, 0, -1), cv2.COLOR_GRAY2BGR)
+    
+            # Retrieve the right camera frame
+            if self.queue_right is not None and self.queue_right.has():
+                data_right = self.queue_right.get()
+                image_data_xout_right = data_right.getFrame()
+                self.frame_right = cv2.cvtColor(np.moveaxis(image_data_xout_right, 0, -1), cv2.COLOR_GRAY2BGR)
+    
             if logger.isEnabledFor(logging.DEBUG):
                 # Latency in miliseconds 
                 self.latencies.append((dai.Clock.now() - data_xout.getTimestamp()).total_seconds() * 1000)
@@ -319,11 +334,11 @@ class OakDCamera:
                     logger.debug('Image latency: {:.2f} ms, Average latency: {:.2f} ms, Std: {:.2f}' \
                         .format(self.latencies[-1], np.average(self.latencies), np.std(self.latencies)))
                     self.latencies.clear()
-
+    
         if self.queue_xout_depth is not None:
             data_xout_depth = self.queue_xout_depth.get()
             self.frame_xout_depth = data_xout_depth.getFrame()
-
+    
         if self.queue_xout_spatial_data is not None:
             xout_spatial_data = self.queue_xout_spatial_data.get().getSpatialLocations()
             self.roi_distances = []
@@ -334,7 +349,7 @@ class OakDCamera:
                 # ymin = int(roi.topLeft().y)
                 # xmax = int(roi.bottomRight().x)
                 # ymax = int(roi.bottomRight().y)
-
+    
                 coords = depthData.spatialCoordinates
                 
                 self.roi_distances.append(round(roi.topLeft().x,2)) 
@@ -344,8 +359,6 @@ class OakDCamera:
                 self.roi_distances.append(int(coords.x))
                 self.roi_distances.append(int(coords.y))
                 self.roi_distances.append(int(coords.z))
-
-        # return self.frame
 
     def run_threaded(self):
         # Grab the frame from the stream 
@@ -357,14 +370,14 @@ class OakDCamera:
             # Retrieve the left camera frame
             if self.queue_left is not None and self.queue_left.has():
                 data_left = self.queue_left.get()
-                self.frame_left = data_left.getFrame()
-                # self.frame_left = np.moveaxis(image_data_xout_left,0,-1)
-
+                image_data_xout_left = data_left.getFrame()
+                self.frame_left = cv2.cvtColor(np.moveaxis(image_data_xout_left, 0, -1), cv2.COLOR_GRAY2BGR)
+    
             # Retrieve the right camera frame
             if self.queue_right is not None and self.queue_right.has():
                 data_right = self.queue_right.get()
-                self.frame_right = data_right.getFrame()
-                # self.frame_right = np.moveaxis(self.frame_right,0,-1)
+                image_data_xout_right = data_right.getFrame()
+                self.frame_right = cv2.cvtColor(np.moveaxis(image_data_xout_right, 0, -1), cv2.COLOR_GRAY2BGR)
         if self.three_image_return:
             return self.frame_xout, self.frame_left, self.frame_right
         elif self.enable_depth:
@@ -373,7 +386,7 @@ class OakDCamera:
             return self.frame_xout, np.array(self.roi_distances)
         else:
             return self.frame_xout
-
+            
     def update(self):
         # Keep looping infinitely until the thread is stopped
         while self.on:
