@@ -377,7 +377,7 @@ class OakDCamera:
             data_xout = self.queue_xout.get() # blocking
             image_data_xout = data_xout.getFrame()
             self.frame_xout = np.moveaxis(image_data_xout,0,-1)
-            print(self.frame_xout, self.frame_xout.shape, "booo2")
+            print(self.frame_xout, self.frame_xout.shape, "booo2", type(self.frame_xout))
         if self.three_image_return:
             # Retrieve the left camera frame
             if self.queue_left is not None and self.queue_left.has():
@@ -385,7 +385,7 @@ class OakDCamera:
                 self.frame_left = data_left.getFrame()
                 self.frame_left = cv2.resize(self.frame_left, (160, 120), interpolation=cv2.INTER_AREA)
                 self.frame_left = np.stack((self.frame_left,)*3, axis=-1)  # Convert single channel to three-channel RGB
-                print(self.frame_left, "boooo", self.frame_left.shape)
+                print(self.frame_left, "boooo", self.frame_left.shape, type(self.frame_left))
                 # self.frame_left = np.moveaxis(image_data_xout_left,0,-1)
 
             # Retrieve the right camera frame
@@ -397,12 +397,16 @@ class OakDCamera:
 
                 # self.frame_right = np.moveaxis(self.frame_right,0,-1)
         if self.three_image_return:
+            print(" 3image ")
             return self.frame_xout, self.frame_left, self.frame_right
         elif self.enable_depth:
+            print("enable_depth")
             return self.frame_xout,self.frame_xout_depth
         elif self.enable_obstacle_dist:
+            print("enable obstacle dist")
             return self.frame_xout, np.array(self.roi_distances)
         else:
+            print("1image")
             return self.frame_xout
 
     def update(self):
