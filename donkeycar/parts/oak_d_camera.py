@@ -321,6 +321,7 @@ class OakDCamera:
             if self.queue_left is not None and self.queue_left.has():
                 data_left = self.queue_left.get()
                 self.frame_left = data_left.getCvFrame()
+                self.frame_left = np.stack((self.frame_left,)*3, axis=-1)
                 print(self.frame_left, "boooo", self.frame_left.shape)
                 # self.frame_left = np.moveaxis(image_data_xout_left,0,-1)
 
@@ -328,6 +329,8 @@ class OakDCamera:
             if self.queue_right is not None and self.queue_right.has():
                 data_right = self.queue_right.get()
                 self.frame_right = data_right.getCvFrame()
+                self.frame_right = np.stack((self.frame_right,)*3, axis=-1)
+
                 # self.frame_right = np.moveaxis(self.frame_right,0,-1)
 
             if logger.isEnabledFor(logging.DEBUG):
@@ -377,6 +380,7 @@ class OakDCamera:
             if self.queue_left is not None and self.queue_left.has():
                 data_left = self.queue_left.get()
                 self.frame_left = data_left.getFrame()
+                self.frame_left = np.stack((self.frame_left,)*3, axis=-1)
                 print(self.frame_left, "boooo", self.frame_left.shape)
                 # self.frame_left = np.moveaxis(image_data_xout_left,0,-1)
 
@@ -384,6 +388,7 @@ class OakDCamera:
             if self.queue_right is not None and self.queue_right.has():
                 data_right = self.queue_right.get()
                 self.frame_right = data_right.getFrame()
+                self.frame_right = np.stack((self.frame_right,)*3, axis=-1)
                 # self.frame_right = np.moveaxis(self.frame_right,0,-1)
         if self.three_image_return:
             return self.frame_xout, self.frame_left, self.frame_right
