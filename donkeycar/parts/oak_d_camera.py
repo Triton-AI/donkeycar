@@ -369,7 +369,7 @@ class OakDCamera:
                 self.roi_distances.append(int(coords.y))
                 self.roi_distances.append(int(coords.z))
 
-        # return self.frame
+        return self.frame_xout, self.frame_left, self.frame_right
 
     def run_threaded(self):
         # Grab the frame from the stream 
