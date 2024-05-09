@@ -2,6 +2,7 @@ import logging
 import time
 from collections import deque
 import numpy as np
+import cv2
 try:
     import depthai as dai
 except ImportError:
