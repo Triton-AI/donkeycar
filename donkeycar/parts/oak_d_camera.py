@@ -217,33 +217,33 @@ class OakDCamera:
         monoLeft.setResolution(dai.MonoCameraProperties.SensorResolution.THE_400_P)
         monoRight.setResolution(dai.MonoCameraProperties.SensorResolution.THE_400_P)
     
-        # Output streams for left and right cameras
-        xout_left = self.pipeline.create(dai.node.XLinkOut)
-        xout_right = self.pipeline.create(dai.node.XLinkOut)
-        xout_left.setStreamName("left")
-        xout_right.setStreamName("right")
-    
-        # Link mono cameras to their respective outputs
-        monoLeft.out.link(xout_left.input)
-        monoRight.out.link(xout_right.input)
-    
         # Create stereo node
         stereo = self.pipeline.create(dai.node.StereoDepth)
-    
+        
         # Configure stereo node
         stereo.setLeftRightCheck(self.lr_check)
         stereo.setExtendedDisparity(self.extended_disparity)
         stereo.setSubpixel(self.subpixel)
     
+        # Link mono cameras to stereo node inputs
+        monoLeft.out.link(stereo.left)
+        monoRight.out.link(stereo.right)
+    
+        # Output streams for left and right cameras (for viewing/debugging purposes)
+        xout_left = self.pipeline.create(dai.node.XLinkOut)
+        xout_right = self.pipeline.create(dai.node.XLinkOut)
+        xout_left.setStreamName("left")
+        xout_right.setStreamName("right")
+    
+        # Link mono cameras to their respective outputs for direct camera output (optional)
+        monoLeft.out.link(xout_left.input)
+        monoRight.out.link(xout_right.input)
+    
         # Output for depth
         xout_depth = self.pipeline.create(dai.node.XLinkOut)
         xout_depth.setStreamName("xout_depth")
-    
-        # Link stereo depth output to the depth output stream
-        stereo.left.link(monoLeft.out)
-        stereo.right.link(monoRight.out)
         stereo.depth.link(xout_depth.input)
-
+        
     def create_obstacle_dist_pipeline(self):
 
         # Define sources and outputs
