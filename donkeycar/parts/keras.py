@@ -49,9 +49,9 @@ class KerasPilot(ABC):
     """
     def __init__(self,
                  interpreter: Interpreter = KerasInterpreter(),
-                 input_shape: Tuple[int, ...] = (120, 160, 3)) -> None:
+                 input_shape: Tuple[int, ...] = None) -> None:
         # self.model: Optional[Model] = None
-        self.input_shape = input_shape
+        #self.input_shape = (120,160,3)
         self.optimizer = "adam"
         self.interpreter = interpreter
         self.interpreter.set_model(self)
@@ -1137,11 +1137,12 @@ class KerasRGBD(KerasPilot):
     """
     Built on top of KerasLinear. Adding depth map to the input
     """
-    def __init__(self, interpreter: Interpreter = KerasInterpreter(), input_shape=(450, 600, 3), num_sensors=1):
+    def __init__(self, interpreter: Interpreter = KerasInterpreter(), input_shape=(400, 640, 3), num_sensors=1):
         self.input_shape = input_shape
         self.num_sensors = num_sensors
         self.model = self.create_model()
-        super().__init__(interpreter, input_shape)
+        super().__init__(interpreter, input_shape=input_shape)
+        print(self.input_shape)
         # super().__init__(interpreter, input_shape)
 
     def compile(self):
@@ -1154,7 +1155,7 @@ class KerasRGBD(KerasPilot):
         drop = 0.2
 
         img_in = Input(shape=input_shape, name='img_in')
-        depth_in = Input(shape=input_shape[:2] + (1,), name='depth_in')
+        depth_in = Input(shape=(input_shape[:2]) + (1,), name='depth_in')
        
         x_1 = core_cnn_layers(img_in, drop, name="img_in")
         x_2 = core_cnn_layers(depth_in, drop, name="depth_in")
@@ -1181,11 +1182,13 @@ class KerasRGBD(KerasPilot):
             record: Union[TubRecord, List[TubRecord]],
             img_processor: Callable[[np.ndarray], np.ndarray]) -> XY:
         # img_arr = super().x_transform(record, img_processor)
+
         img_arr = record.image(processor=img_processor, as_nparray=True)
         # for simplicity we assume the sensor data here is normalised
         depth_arr = record.depth(as_nparray=True)
         depth_arr = np.expand_dims(depth_arr, axis=-1)
         # we need to return the image data first
+       
         return {'img_in': img_arr, 'depth_in': depth_arr}
     
     # def x_translate(self, x: XY) -> Dict[str, Union[float, np.ndarray]]:
@@ -1222,8 +1225,7 @@ class KerasRGBD(KerasPilot):
     def output_shapes(self):
         # need to cut off None from [None, 120, 160, 3] tensor shape
         img_shape = self.get_input_shape('img_in')[1:]
-        depth_shape = self.get_input_shape('depth_in')[1:];
-
+        depth_shape = self.get_input_shape('depth_in')[1:]
         # the keys need to match the models input/output layers
         shapes = ({'img_in': tf.TensorShape(img_shape),
                    'depth_in': tf.TensorShape(img_shape[:2]+(1,))},

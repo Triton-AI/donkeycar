@@ -66,6 +66,9 @@ class TubRecord(object):
                 _image = load_pil_image(full_path, cfg=self.config)
             if processor:
                 _image = processor(_image)
+                # Check if the shape is changed
+                if _image.shape != load_image(full_path, cfg=self.config).shape:
+                    raise ValueError("Processor altered image shape")
             # only cache images if config does not forbid it
             if self._cache_images:
                 self._image = _image
