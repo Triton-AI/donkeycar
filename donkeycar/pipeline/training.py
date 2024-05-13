@@ -20,7 +20,9 @@ import tensorflow as tf
 import numpy as np
 
 logger = logging.getLogger(__name__)
-
+physical_devices = tf.config.experimental.list_physical_devices('GPU')
+assert len(physical_devices) > 0, "No GPU found, training will be slow."
+tf.config.experimental.set_memory_growth(physical_devices[0], True)
 
 class BatchSequence(object):
     """
