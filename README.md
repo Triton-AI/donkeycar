@@ -184,7 +184,7 @@ python train.py --tub home/projects/mycars/3image/data --model=models/{Insert wh
 python manage.py drive --model=./models/{What you named your model}.h5
 ```
 
-1. **Go to http://ucsd-yellow.local:8887/drive, switch (M)ode from (U)ser to Full (A)uto**
+2. **Go to http://ucsd-yellow.local:8887/drive, switch (M)ode from (U)ser to Full (A)uto**
 
 **How to run image augmentation code:**
 
@@ -195,7 +195,7 @@ python manage.py drive --model=./models/{What you named your model}.h5
 cp ../../donkeycar/donkeycar/templates/augment.py .
 ```
 
-1. **Run:**
+3. **Run:**
 
 ```bash
 python augment.py --skew --flip --jitter --cutout
