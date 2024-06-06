@@ -173,7 +173,7 @@ python manage.py drive
 1.
 
 ```bash
-python train.py --tub home/projects/mycars/3image home/projects/mycars/3image/data --model=models/{Insert whatever you want to name your model}.h5
+python train.py --tub home/projects/mycars/3image/data --model=models/{Insert whatever you want to name your model}.h5
 ```
 
 **To deploy:**
