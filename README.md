@@ -79,22 +79,22 @@ or join the [Discord server](http://www.donkeycar.com/community.html) to learn m
 2. 
 
 ```bash
-**ssh [jetson@ucsd-yellow.local](mailto:jetson@ucsd-yellow.local)**
+ssh jetson@ucsd-yellow.local
 ```
 
-1. 
+3. 
 
 ```bash
 pwd: jetsonucsd
 ```
 
-1. 
+4. 
 
 ```bash
 cd projects/icra_devel
 ```
 
-1. 
+5. 
 
 ```bash
 bash run.sh
@@ -106,13 +106,13 @@ bash run.sh
 docker stop donkey
 ```
 
-1. 
+6. 
 
 ```bash
 source_donkey
 ```
 
-1. 
+7. 
 
 ```bash
 cd..
