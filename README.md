@@ -154,7 +154,7 @@ cd..
 cd mycars/3image
 ```
 
-**To collect new data:**
+**To collect new data (assuming you want to delete all previous data):**
 
 1.
 
