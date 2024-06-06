@@ -72,3 +72,131 @@ V.start(rate_hz=10)
 
 See [home page](http://donkeycar.com), [docs](http://docs.donkeycar.com)
 or join the [Discord server](http://www.donkeycar.com/community.html) to learn more.
+
+# Running 3 Image DonkeyCar
+
+1. **Connect to ‘UCSDRoboCar’ WiFi**
+2. 
+
+```bash
+**ssh [jetson@ucsd-yellow.local](mailto:jetson@ucsd-yellow.local)**
+```
+
+1. 
+
+```bash
+pwd: jetsonucsd
+```
+
+1. 
+
+```bash
+cd projects/icra_devel
+```
+
+1. 
+
+```bash
+bash run.sh
+```
+
+**If it says ‘docker already running’, do:**
+
+```bash
+docker stop donkey
+```
+
+1. 
+
+```bash
+source_donkey
+```
+
+1. 
+
+```bash
+cd..
+```
+
+8.
+
+```bash
+cd donkeycar
+```
+
+9.
+
+```bash
+git checkout
+```
+
+10.
+
+```bash
+git pull
+```
+
+11.
+
+```bash
+git checkout new-3image_donkey
+```
+
+12.
+
+```bash
+cd..
+```
+
+13.
+
+```bash
+cd mycars/3image
+```
+
+**To collect new data:**
+
+1.
+
+```bash
+rm -r data
+```
+
+2.
+
+```bash
+python manage.py drive
+```
+
+**Data folder needs at least 5000~ images to deploy successfully, then:**
+
+1.
+
+```bash
+python train.py --tub home/projects/mycars/3image home/projects/mycars/3image/data --model=models/{Insert whatever you want to name your model}.h5
+```
+
+**To deploy:**
+
+1.
+
+```bash
+python manage.py drive --model=./models/{What you named your model}.h5
+```
+
+1. **Go to http://ucsd-yellow.local:8887/drive, switch (M)ode from (U)ser to Full (A)uto**
+
+**How to run image augmentation code:**
+
+1. **Navigate to the ‘3image’ folder**
+2. **If [augment.py](http://augment.py) is not in the ‘3image’ folder, run:**
+
+```bash
+cp ../../donkeycar/donkeycar/templates/augment.py .
+```
+
+1. **Run:**
+
+```bash
+python augment.py --skew --flip --jitter --cutout
+```
