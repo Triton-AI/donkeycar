@@ -1,6 +1,4 @@
-import logging
 import time
-from collections import deque
 import numpy as np
 import depthai as dai
 
@@ -36,6 +34,7 @@ class OakDCamera:
         self.on = False
 
         self.device = None
+        self.framerate = framerate
 
         self.rgb_resolution = rgb_resolution
 
@@ -55,7 +54,6 @@ class OakDCamera:
         # Better handling for occlusions:
         self.lr_check = True
 
-        self.latencies = deque([], maxlen=20)
         self.enable_depth = enable_depth
         self.enable_obstacle_dist = enable_obstacle_dist
 
@@ -91,8 +89,9 @@ class OakDCamera:
             camera.setColorOrder(dai.ColorCameraProperties.ColorOrder.RGB)
 
             if isp_scale:
-                # see https://docs.google.com/spreadsheets/d/153yTstShkJqsPbkPOQjsVRmM8ZO3A6sCqm7uayGF-EE/edit#gid=0
-                # "scale" sensor size, (9,19) = 910x512 ; seems very slightly faster
+                # see https://docs.google.com/spreadsheets/d/153yTstShkJqsPbk
+                # POQjsVRmM8ZO3A6sCqm7uayGF-EE/edit#gid=0
+                # "scale" sensor size, (9,19) = 910x512
                 camera.setIspScale(isp_scale)
 
             if rgb_apply_cropping:
@@ -103,7 +102,7 @@ class OakDCamera:
 
             # Resize image
             camera.setPreviewKeepAspectRatio(False)
-            # wich means cropping if aspect ratio kept
+            # which means cropping if aspect ratio kept
             camera.setPreviewSize(width, height)
 
             camera.setIspNumFramesPool(1)
@@ -115,17 +114,20 @@ class OakDCamera:
                     rgb_exposure_time, rgb_sensor_iso)
                 camera.initialControl.setManualWhiteBalance(rgb_wb_manual)
 
-                # camRgb.initialControl.setLumaDenoise(0)
-                # camRgb.initialControl.setChromaDenoise(4)
             else:
 
-                camera.initialControl.SceneMode(
+                camera.initialControl.setSceneMode(
                     dai.CameraControl.SceneMode.SPORTS)
                 camera.initialControl.setAutoWhiteBalanceMode(
                     dai.CameraControl.AutoWhiteBalanceMode.AUTO)
 
             # Link
             camera.preview.link(xout.input)
+
+            camera.initialControl.setManualFocus(0)
+            camera.initialControl.setAutoWhiteBalanceMode(
+                dai.CameraControl.AutoWhiteBalanceMode.FLUORESCENT)
+            camera.setFps(framerate)
 
         elif depth == 1:
             # Source
@@ -144,20 +146,16 @@ class OakDCamera:
             camera.out.link(manip.inputImage)
             manip.out.link(xout.input)
 
+            camera.initialControl.setManualFocus(0)
+            camera.setFps(framerate)
+
         else:
             raise ValueError(
                 "'depth' parameter must be either '3' (RGB) or '1' (GRAY)")
 
-        # Common settings
-        camera.initialControl.setManualFocus(0)  # from calibration data
-        camera.initialControl.setAutoWhiteBalanceMode(
-            dai.CameraControl.AutoWhiteBalanceMode.FLUORESCENT)  # CLOUDY_DAYLIGHT FLUORESCENT
-        camera.setFps(framerate)
-
         try:
 
             # Connect to device and start pipeline
-            logger.info('Starting OAK-D camera')
             self.device = dai.Device(self.pipeline)
 
             warming_time = time.time() + 5  # seconds
@@ -169,8 +167,9 @@ class OakDCamera:
                     "xout_depth", maxSize=1, blocking=False)
 
                 # Get the first frame or timeout
-                while (self.frame_xout is None or self.frame_xout_depth is None) and time.time() < warming_time:
-                    logger.info("...warming RGB and depth cameras")
+                while ((self.frame_xout is None or
+                        self.frame_xout_depth is None) and
+                       time.time() < warming_time):
                     self.run()
                     time.sleep(0.2)
 
@@ -191,7 +190,6 @@ class OakDCamera:
 
                 # Get the first frame or timeout
                 while self.frame_xout is None and time.time() < warming_time:
-                    logger.info("...warming camera")
                     self.run()
                     time.sleep(0.2)
 
@@ -199,9 +197,8 @@ class OakDCamera:
                     raise CameraError("Unable to start OAK-D camera.")
 
             self.on = True
-            logger.info("OAK-D camera ready.")
 
-        except:
+        except Exception:
             self.shutdown()
             raise
 
@@ -303,29 +300,20 @@ class OakDCamera:
         spatialLocationCalculator.out.link(xoutSpatialData.input)
         xinSpatialCalcConfig.out.link(spatialLocationCalculator.inputConfig)
 
-    def run(self):
-
+    def _update_frames(self):
         # Grab the frame from the stream
         if self.queue_xout is not None:
             data_xout = self.queue_xout.get()  # blocking
             image_data_xout = data_xout.getFrame()
             self.frame_xout = np.moveaxis(image_data_xout, 0, -1)
 
-            if logger.isEnabledFor(logging.DEBUG):
-                # Latency in miliseconds
-                self.latencies.append(
-                    (dai.Clock.now() - data_xout.getTimestamp()).total_seconds() * 1000)
-                if len(self.latencies) >= self.latencies.maxlen:
-                    logger.debug('Image latency: {:.2f} ms, Average latency: {:.2f} ms, Std: {:.2f}'
-                                 .format(self.latencies[-1], np.average(self.latencies), np.std(self.latencies)))
-                    self.latencies.clear()
-
         if self.queue_xout_depth is not None:
             data_xout_depth = self.queue_xout_depth.get()
             self.frame_xout_depth = data_xout_depth.getFrame()
 
         if self.queue_xout_spatial_data is not None:
-            xout_spatial_data = self.queue_xout_spatial_data.get().getSpatialLocations()
+            spatial_data = self.queue_xout_spatial_data.get()
+            xout_spatial_data = spatial_data.getSpatialLocations()
             self.roi_distances = []
             for depthData in xout_spatial_data:
                 roi = depthData.config.roi
@@ -340,6 +328,8 @@ class OakDCamera:
                 self.roi_distances.append(int(coords.y))
                 self.roi_distances.append(int(coords.z))
 
+    def run(self):
+        self._update_frames()
         if self.enable_depth:
             return self.frame_xout, self.frame_xout_depth
         elif self.enable_obstacle_dist:
@@ -356,10 +346,10 @@ class OakDCamera:
             return self.frame_xout
 
     def update(self):
-        from datetime import datetime, timedelta
+        from datetime import datetime
         while self.on:
             start = datetime.now()
-            self.run()
+            self._update_frames()
             stop = datetime.now()
             s = 1 / self.framerate - (stop - start).total_seconds()
             if s > 0:
@@ -368,10 +358,11 @@ class OakDCamera:
     def shutdown(self):
         # Indicate that the thread should be stopped
         self.on = False
-        logger.info('Stopping OAK-D camera')
         time.sleep(.5)
         if self.device is not None:
             self.device.close()
         self.device = None
-        self.queue = None
+        self.queue_xout = None
+        self.queue_xout_depth = None
+        self.queue_xout_spatial_data = None
         self.pipeline = None
